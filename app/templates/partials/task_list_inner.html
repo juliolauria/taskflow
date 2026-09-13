@@ -1,0 +1,218 @@
+{% if not groups %}
+<p class="empty-state">No tasks yet. Add one below to get started.</p>
+{% endif %}
+
+{% for group in groups %}
+<section class="project-group">
+  {% if not show_project_column %}
+  <h2 class="project-name" {% if group.project and group.project.color %}style="border-left-color: {{ group.project.color }}"{% endif %}>
+    {{ group.project.name }}
+  </h2>
+  {% endif %}
+  <div class="table-scroll">
+    <table class="task-table">
+      <thead>
+        <tr>
+          <th class="col-drag" data-col="drag"></th>
+          <th class="col-done" data-col="done"></th>
+          {% if show_project_column %}
+          <th data-col="project">Project</th>
+          {% endif %}
+          <th data-col="title">Title</th>
+          <th data-col="priority">Priority</th>
+          <th data-col="status">
+            Status
+            <button type="button" class="col-manage-btn" hx-get="/statuses/manage" hx-target="#modal-root" hx-swap="innerHTML" title="Manage statuses">&#9881;</button>
+          </th>
+          <th data-col="responsible">
+            Responsible
+            <button type="button" class="col-manage-btn" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML" title="Manage responsible">&#9881;</button>
+          </th>
+          <th data-col="deadline">Deadline</th>
+          <th data-col="comments">Comments</th>
+          <th data-col="checklist">Checklist</th>
+          <th class="col-actions" data-col="actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in group.tasks %}
+        <tr class="task-row-grid priority-{{ task.priority.value | lower }}" data-task-id="{{ task.id }}">
+          <td class="col-drag" data-col="drag">
+            <span class="row-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+          </td>
+          <td class="col-done" data-col="done">
+            <button
+              class="done-toggle"
+              hx-post="/tasks/{{ task.id }}/done?project={{ current_filter }}"
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+              aria-label="Mark done"
+            ></button>
+          </td>
+          {% if show_project_column %}
+          <td data-col="project">
+            <span class="chip" style="background: {{ project_colors.get(task.project_id, '#888888') }}33; color: {{ project_colors.get(task.project_id, '#888888') }};">
+              {{ project_names.get(task.project_id, "") }}
+            </span>
+          </td>
+          {% endif %}
+          <td data-col="title">
+            <input
+              type="text"
+              class="cell-input"
+              value="{{ task.title }}"
+              name="value"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "title"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+          </td>
+          <td data-col="priority">
+            <select
+              class="cell-select priority-select"
+              name="value"
+              style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "priority"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+              {% for p in priorities %}
+              <option value="{{ p.value }}" style="background: {{ priority_colors.get(p.value, '#888888') }}; color: #fff;" {% if p == task.priority %}selected{% endif %}>{{ p.value }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td data-col="status">
+            <select
+              class="cell-select status-select"
+              name="value"
+              style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "status"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+              {% for s in statuses %}
+              <option value="{{ s.name }}" style="background: {{ s.color }}; color: #fff;" {% if s.name == task.status %}selected{% endif %}>{{ s.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td data-col="responsible">
+            <input
+              type="text"
+              class="cell-input"
+              value="{{ task.responsible }}"
+              placeholder="Unassigned"
+              list="responsible-datalist"
+              name="value"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "responsible"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+          </td>
+          <td data-col="deadline">
+            <input
+              type="date"
+              class="cell-input"
+              value="{{ task.deadline.isoformat() if task.deadline else '' }}"
+              name="value"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "deadline"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+          </td>
+          <td data-col="comments">
+            <input
+              type="text"
+              class="cell-input"
+              value="{{ task.comments or '' }}"
+              placeholder="Add a comment…"
+              name="value"
+              hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+              hx-trigger="change"
+              hx-vals='{"field": "comments"}'
+              hx-target="#task-list"
+              hx-swap="outerHTML"
+            >
+          </td>
+          <td data-col="checklist">
+            {% set total = checklist_totals.get(task.id, 0) %}
+            {% set done = checklist_done.get(task.id, 0) %}
+            <span
+              id="checklist-summary-{{ task.id }}"
+              class="checklist-summary {% if total and done == total %}complete{% endif %}"
+              hx-get="/tasks/{{ task.id }}/checklist?project={{ current_filter }}"
+              hx-target="#modal-root"
+              hx-swap="innerHTML"
+            >{% if total %}&#9776; {{ done }}/{{ total }}{% else %}+ Checklist{% endif %}</span>
+          </td>
+          <td class="col-actions" data-col="actions">
+            <button
+              type="button"
+              class="row-expand"
+              hx-get="/tasks/{{ task.id }}/edit?project={{ current_filter }}"
+              hx-target="#modal-root"
+              hx-swap="innerHTML"
+              aria-label="More details"
+              title="More details"
+            >&#8942;</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endfor %}
+
+{% if completed_tasks %}
+<section class="completed-section">
+  <button type="button" class="completed-toggle" onclick="this.closest('.completed-section').classList.toggle('expanded')">
+    <span class="chevron">&#9656;</span> Completed <span class="badge count-badge">{{ completed_tasks|length }}</span>
+  </button>
+  <ul class="task-rows completed-rows">
+    {% for task in completed_tasks %}
+    <li class="task-row completed priority-{{ task.priority.value|lower }}">
+      <button
+        class="done-toggle checked"
+        hx-post="/tasks/{{ task.id }}/reopen?project={{ current_filter }}"
+        hx-target="#task-list"
+        hx-swap="outerHTML"
+        aria-label="Reopen task"
+        onclick="event.stopPropagation()"
+      ></button>
+      <div
+        class="task-main"
+        hx-get="/tasks/{{ task.id }}/edit?project={{ current_filter }}"
+        hx-target="#modal-root"
+        hx-swap="innerHTML"
+      >
+        <span class="task-title strikethrough">{{ task.title }}</span>
+        <div class="task-meta">
+          {% if show_project_column %}
+          <span class="chip chip-sm" style="background: {{ project_colors.get(task.project_id, '#888888') }}33; color: {{ project_colors.get(task.project_id, '#888888') }};">
+            {{ project_names.get(task.project_id, "") }}
+          </span>
+          {% endif %}
+          <span class="badge priority-badge">{{ task.priority.value }}</span>
+          {% if task.responsible %}
+          <span class="badge responsible-badge">{{ task.responsible }}</span>
+          {% endif %}
+          {% if task.completed_at %}
+          <span class="badge completed-badge">Completed {{ task.completed_at.strftime("%d %b") }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}

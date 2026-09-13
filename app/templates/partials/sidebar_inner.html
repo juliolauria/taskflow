@@ -1,0 +1,47 @@
+  <div class="sidebar-header">
+    <span class="brand">TaskFlow</span>
+    <button type="button" class="sidebar-collapse-btn" onclick="toggleSidebar()" aria-label="Collapse sidebar" title="Collapse sidebar">&laquo;</button>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="/?project=all" class="sidebar-link {% if current_filter == 'all' %}active{% endif %}">
+      <span class="dot dot-all"></span> All Tasks
+    </a>
+    <a href="/views" class="sidebar-link {% if current_filter == 'views' %}active{% endif %}">
+      <span class="dot dot-views"></span> Filters
+    </a>
+    <a href="/kanban" class="sidebar-link {% if current_filter == 'kanban' %}active{% endif %}">
+      <span class="dot dot-kanban"></span> Kanban
+    </a>
+
+    <div class="sidebar-section-label">Projects</div>
+    <div class="sidebar-projects-list" data-current-filter="{{ current_filter }}">
+      {% for project in projects %}
+      <div class="sidebar-row {% if current_filter == project.id|string %}active{% endif %}" data-project-id="{{ project.id }}">
+        <span class="sidebar-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+        <input
+          type="color"
+          class="dot dot-project"
+          name="color"
+          value="{{ project.color or '#888888' }}"
+          hx-post="/projects/{{ project.id }}/color"
+          hx-trigger="change"
+          hx-target="#sidebar"
+          hx-swap="outerHTML"
+          hx-vals='{"current_filter": "{{ current_filter }}"}'
+          title="Change project color"
+        >
+        <a href="/?project={{ project.id }}" class="sidebar-link-label">{{ project.name }}</a>
+      </div>
+      {% else %}
+      <p class="sidebar-empty">No projects yet</p>
+      {% endfor %}
+    </div>
+  </nav>
+
+  <form class="sidebar-add-project" hx-post="/projects" hx-target="#sidebar" hx-swap="outerHTML">
+    <input type="hidden" name="current_filter" value="{{ current_filter }}">
+    <input type="color" name="color" class="dot dot-project new-project-color" value="#4f8cff" title="Project color">
+    <input type="text" name="name" placeholder="+ New project" autocomplete="off" required>
+    <button type="submit" class="sidebar-add-btn" aria-label="Add project" title="Add project">+</button>
+  </form>

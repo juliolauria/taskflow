@@ -1,0 +1,59 @@
+<div class="modal-overlay" onclick="document.getElementById('modal-root').innerHTML=''">
+  <div class="modal-box modal-box-narrow" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <div class="checklist-modal-heading">
+        <h3>Checklist</h3>
+        <p class="checklist-modal-subtitle">{{ task.title }}</p>
+      </div>
+      <button type="button" class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''" aria-label="Close">&times;</button>
+    </div>
+
+    <ul class="checklist-list" data-task-id="{{ task.id }}" data-current-filter="{{ current_filter }}">
+      {% for item in items %}
+      <li class="checklist-item {% if item.done %}done{% endif %}" data-item-id="{{ item.id }}">
+        <span class="checklist-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+        <button
+          type="button"
+          class="checklist-toggle {% if item.done %}checked{% endif %}"
+          hx-post="/checklist/{{ item.id }}/toggle?project={{ current_filter }}"
+          hx-target="#modal-root"
+          hx-swap="innerHTML"
+          aria-label="Toggle subtask"
+        ></button>
+        <span class="checklist-item-title">{{ item.title }}</span>
+        <button
+          type="button"
+          class="checklist-delete"
+          hx-delete="/checklist/{{ item.id }}?project={{ current_filter }}"
+          hx-target="#modal-root"
+          hx-swap="innerHTML"
+          aria-label="Remove subtask"
+        >&times;</button>
+      </li>
+      {% else %}
+      <li class="checklist-empty">No subtasks yet.</li>
+      {% endfor %}
+    </ul>
+
+    <form
+      class="checklist-add-form"
+      hx-post="/tasks/{{ task.id }}/checklist?project={{ current_filter }}"
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+    >
+      <input type="text" name="title" placeholder="Add a subtask…" required autocomplete="off">
+      <button type="submit" class="btn-primary">Add</button>
+    </form>
+  </div>
+</div>
+
+<span
+  id="checklist-summary-{{ task.id }}"
+  class="checklist-summary {% if total_count and done_count == total_count %}complete{% endif %}"
+  hx-swap-oob="true"
+  hx-get="/tasks/{{ task.id }}/checklist?project={{ current_filter }}"
+  hx-target="#modal-root"
+  hx-swap="innerHTML"
+>
+  {% if total_count %}&#9776; {{ done_count }}/{{ total_count }}{% else %}+ Checklist{% endif %}
+</span>

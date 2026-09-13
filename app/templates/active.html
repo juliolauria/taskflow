@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-shell">
+  {% include "partials/sidebar.html" %}
+
+  <main class="main-content">
+    <header class="app-header">
+      <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">&#9776;</button>
+      {% if current_project_id %}
+      <div id="page-title" class="page-title-editable">
+        <h1 class="page-title-label" onclick="startRenameTitle(this)" title="Click to rename">{{ view_title }}</h1>
+        <input
+          type="text"
+          class="page-title-input"
+          name="name"
+          value="{{ view_title }}"
+          hidden
+          hx-post="/projects/{{ current_project_id }}/rename"
+          hx-trigger="blur, keyup[key=='Enter']"
+          hx-target="#page-title"
+          hx-swap="outerHTML"
+          hx-vals='{"current_filter": "{{ current_filter }}"}'
+          onkeydown="if (event.key === 'Escape') { this.value = this.defaultValue; this.hidden = true; this.previousElementSibling.hidden = false; }"
+        >
+      </div>
+      {% else %}
+      <h1>{{ view_title }}</h1>
+      {% endif %}
+    </header>
+
+    <datalist id="responsible-datalist">
+      {% for r in responsible_options %}
+      <option value="{{ r.name }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <div class="task-list-wrapper">
+      {% include "partials/task_list.html" %}
+    </div>
+
+    <form
+      id="quick-add"
+      hx-post="/tasks?project={{ current_filter }}"
+      hx-target="#task-list"
+      hx-swap="outerHTML"
+      hx-on::after-request="this.reset(); this.querySelector('input[name=title]').focus()"
+    >
+      {% if current_filter == "all" and projects %}
+      <select name="project_id" class="quick-add-project" required>
+        {% for p in projects %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <input
+        type="text"
+        name="title"
+        placeholder="{{ 'Create a project first' if not projects else 'Add a task and hit Enter…' }}"
+        autofocus
+        autocomplete="off"
+        required
+        {% if not projects %}disabled{% endif %}
+      >
+      <button type="submit" {% if not projects %}disabled{% endif %}>Add</button>
+    </form>
+  </main>
+</div>
+
+<div id="modal-root"></div>
+{% endblock %}

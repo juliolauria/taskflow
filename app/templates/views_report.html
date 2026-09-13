@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import filter_dropdown %}
+
+{% block content %}
+<div class="app-shell">
+  {% include "partials/sidebar.html" %}
+
+  <main class="main-content">
+    <header class="app-header">
+      <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">&#9776;</button>
+      <h1>Filters</h1>
+    </header>
+
+    <datalist id="responsible-datalist">
+      {% for r in responsible_options %}
+      <option value="{{ r.name }}"></option>
+      {% endfor %}
+    </datalist>
+
+    <div class="views-body">
+      <form class="views-filter-form" method="get" action="/views">
+        <div class="filter-group">
+          <label>Group by</label>
+          <select name="group_by" class="filter-select">
+            <option value="">None</option>
+            <option value="project" {% if group_by == "project" %}selected{% endif %}>Project</option>
+            <option value="priority" {% if group_by == "priority" %}selected{% endif %}>Priority</option>
+            <option value="status" {% if group_by == "status" %}selected{% endif %}>Status</option>
+            <option value="responsible" {% if group_by == "responsible" %}selected{% endif %}>Responsible</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Project</label>
+          {{ filter_dropdown("projects", "All Projects", project_filter_label, project_filter_options, selected_projects) }}
+        </div>
+
+        <div class="filter-group">
+          <label>Priority</label>
+          {{ filter_dropdown("priorities", "All Priorities", priority_filter_label, priority_filter_options, selected_priorities) }}
+        </div>
+
+        <div class="filter-group">
+          <label>Status</label>
+          {{ filter_dropdown("statuses", "All Statuses", status_filter_label, status_filter_options, selected_statuses) }}
+        </div>
+
+        <div class="filter-group">
+          <label>Responsible</label>
+          {{ filter_dropdown("responsibles", "All Responsible", responsible_filter_label, responsible_filter_options, selected_responsibles) }}
+        </div>
+
+        <div class="filter-actions">
+          <button type="submit" class="btn-primary">Apply</button>
+          <a href="/views" class="btn-secondary-link">Reset</a>
+        </div>
+      </form>
+
+      <div class="views-results">
+        {% set any_tasks = groups | selectattr("tasks") | list %}
+        {% if not any_tasks %}
+        <p class="empty-state">No tasks match these filters.</p>
+        {% endif %}
+
+        {% for group in groups %}
+        {% if group.tasks %}
+        <section class="project-group">
+          {% if group.label %}
+          <h2 class="project-name">{{ group.label }} <span class="badge count-badge">{{ group.tasks|length }}</span></h2>
+          {% endif %}
+          <div class="table-scroll">
+            <table class="task-table">
+              <thead>
+                <tr>
+                  <th class="col-done" data-col="done"></th>
+                  <th data-col="project">Project</th>
+                  <th data-col="title">Title</th>
+                  <th data-col="priority">Priority</th>
+                  <th data-col="status">Status</th>
+                  <th data-col="responsible">Responsible</th>
+                  <th data-col="deadline">Deadline</th>
+                  <th data-col="comments">Comments</th>
+                  <th data-col="checklist">Checklist</th>
+                  <th class="col-actions" data-col="actions"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for task in group.tasks %}
+                {% include "partials/views_task_row.html" %}
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </section>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="modal-root"></div>
+{% endblock %}

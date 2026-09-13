@@ -1,0 +1,28 @@
+{% macro filter_dropdown(field_name, all_label, current_label, options, selected) %}
+<div class="dropdown-filter">
+  <button type="button" class="dropdown-filter-btn" onclick="toggleFilterDropdown(this)">
+    <span class="dropdown-filter-label">{{ current_label }}</span>
+    <span class="dropdown-caret">&#9662;</span>
+  </button>
+  <div class="dropdown-filter-panel" hidden>
+    <div class="dropdown-filter-actions">
+      <button type="button" onclick="setFilterCheckboxes(this, true)">All</button>
+      <button type="button" onclick="setFilterCheckboxes(this, false)">None</button>
+    </div>
+    <div class="dropdown-filter-options">
+      {% for value, text in options %}
+      <label class="dropdown-filter-option">
+        <input
+          type="checkbox"
+          name="{{ field_name }}"
+          value="{{ value }}"
+          {% if value in selected %}checked{% endif %}
+          onchange="updateFilterLabel(this, '{{ all_label }}')"
+        >
+        {{ text }}
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endmacro %}

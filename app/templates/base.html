@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TaskFlow</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/style.css">
+  <script>
+    (function () {
+      var stored = localStorage.getItem("sidebarCollapsed");
+      var collapsed = stored !== null ? stored === "true" : window.innerWidth < 768;
+      if (collapsed) {
+        document.documentElement.classList.add("sidebar-collapsed");
+      }
+    })();
+
+    function toggleSidebar() {
+      var collapsed = document.documentElement.classList.toggle("sidebar-collapsed");
+      localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
+    }
+
+    function toggleFilterDropdown(btn) {
+      var panel = btn.nextElementSibling;
+      var wasHidden = panel.hidden;
+      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+      panel.hidden = !wasHidden;
+    }
+
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest(".dropdown-filter")) {
+        document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+      }
+    });
+
+    function setFilterCheckboxes(btn, checked) {
+      var panel = btn.closest(".dropdown-filter-panel");
+      var boxes = panel.querySelectorAll("input[type=checkbox]");
+      boxes.forEach(function (cb) { cb.checked = checked; });
+      if (boxes.length) {
+        var allLabel = panel.closest(".dropdown-filter").dataset.allLabel;
+        updateFilterLabel(boxes[0], allLabel);
+      }
+    }
+
+    function updateFilterLabel(checkbox, allLabel) {
+      var root = checkbox.closest(".dropdown-filter");
+      root.dataset.allLabel = allLabel;
+      var panel = checkbox.closest(".dropdown-filter-panel");
+      var labelSpan = root.querySelector(".dropdown-filter-label");
+      var boxes = Array.from(panel.querySelectorAll("input[type=checkbox]"));
+      var checked = boxes.filter(function (b) { return b.checked; });
+      if (checked.length === 0 || checked.length === boxes.length) {
+        labelSpan.textContent = allLabel;
+      } else if (checked.length === 1) {
+        labelSpan.textContent = checked[0].parentElement.textContent.trim();
+      } else {
+        labelSpan.textContent = checked.length + " selected";
+      }
+    }
+
+    // ---- Draggable / reorderable task-table columns ----
+    // Column order is a per-browser display preference (not shared data),
+    // so it's kept in localStorage rather than the database.
+    function getCurrentColumnOrder() {
+      var firstTable = document.querySelector(".task-table");
+      if (!firstTable) return [];
+      var headerRow = firstTable.querySelector("thead tr");
+      if (!headerRow) return [];
+      return Array.from(headerRow.children)
+        .map(function (th) { return th.dataset.col; })
+        .filter(Boolean);
+    }
+
+    function mergeColumnOrder(nativeOrder, saved) {
+      if (!saved || !Array.isArray(saved)) return nativeOrder;
+      var order = saved.filter(function (c) { return nativeOrder.indexOf(c) !== -1; });
+      nativeOrder.forEach(function (c) { if (order.indexOf(c) === -1) order.push(c); });
+      order = order.filter(function (c) { return c !== "drag" && c !== "done" && c !== "actions"; });
+      order.unshift("done");
+      order.unshift("drag");
+      order.push("actions");
+      return order;
+    }
+
+    function reorderRowCells(row, order) {
+      if (!row) return;
+      var cells = {};
+      Array.from(row.children).forEach(function (cell) {
+        if (cell.dataset.col) cells[cell.dataset.col] = cell;
+      });
+      order.forEach(function (col) {
+        if (cells[col]) row.appendChild(cells[col]);
+      });
+    }
+
+    function applyColumnOrder(order) {
+      document.querySelectorAll(".task-table").forEach(function (table) {
+        reorderRowCells(table.querySelector("thead tr"), order);
+        table.querySelectorAll("tbody tr").forEach(function (row) {
+          reorderRowCells(row, order);
+        });
+      });
+    }
+
+    function attachColumnDragHandlers() {
+      document.querySelectorAll(".task-table thead th[data-col]").forEach(function (th) {
+        var col = th.dataset.col;
+        if (col === "drag" || col === "done" || col === "actions" || th.dataset.dragBound) return;
+        th.dataset.dragBound = "true";
+        th.setAttribute("draggable", "true");
+        th.classList.add("col-draggable");
+        th.addEventListener("dragstart", function (e) {
+          e.dataTransfer.setData("text/plain", col);
+        });
+        th.addEventListener("dragover", function (e) { e.preventDefault(); });
+        th.addEventListener("drop", function (e) {
+          e.preventDefault();
+          var draggedCol = e.dataTransfer.getData("text/plain");
+          if (!draggedCol || draggedCol === col) return;
+          var order = getCurrentColumnOrder();
+          var from = order.indexOf(draggedCol);
+          var to = order.indexOf(col);
+          if (from === -1 || to === -1) return;
+          order.splice(from, 1);
+          order.splice(to, 0, draggedCol);
+          localStorage.setItem("taskTableColumnOrder", JSON.stringify(order));
+          applyColumnOrder(order);
+        });
+      });
+    }
+
+    // ---- Draggable / reorderable task ROWS ----
+    // Manual order is stored server-side (Task.position), set by dragging
+    // the ⋮⋮ handle. Reordering re-posts the full visible row order for
+    // that table and re-renders #task-list from the response.
+    function attachRowDragHandlers() {
+      document.querySelectorAll(".task-table tbody").forEach(function (tbody) {
+        tbody.querySelectorAll(".row-drag-handle").forEach(function (handle) {
+          if (handle.dataset.bound) return;
+          handle.dataset.bound = "true";
+          handle.addEventListener("dragstart", function (e) {
+            var row = handle.closest("tr");
+            e.dataTransfer.setData("text/plain", row.dataset.taskId);
+            e.dataTransfer.effectAllowed = "move";
+          });
+        });
+        tbody.querySelectorAll("tr[data-task-id]").forEach(function (row) {
+          if (row.dataset.dropBound) return;
+          row.dataset.dropBound = "true";
+          row.addEventListener("dragover", function (e) { e.preventDefault(); });
+          row.addEventListener("drop", function (e) {
+            e.preventDefault();
+            var draggedId = e.dataTransfer.getData("text/plain");
+            if (!draggedId) return;
+            var draggedRow = tbody.querySelector('tr[data-task-id="' + draggedId + '"]');
+            if (!draggedRow || draggedRow === row) return;
+            var rect = row.getBoundingClientRect();
+            var before = (e.clientY - rect.top) < rect.height / 2;
+            tbody.insertBefore(draggedRow, before ? row : row.nextSibling);
+            submitRowOrder(tbody);
+          });
+        });
+      });
+    }
+
+    function submitRowOrder(tbody) {
+      var ids = Array.from(tbody.querySelectorAll("tr[data-task-id]")).map(function (r) {
+        return r.dataset.taskId;
+      });
+      var wrapper = document.getElementById("task-list");
+      var currentFilter = wrapper ? wrapper.dataset.currentFilter : "all";
+      var params = new URLSearchParams();
+      ids.forEach(function (id) { params.append("order", id); });
+      fetch("/tasks/reorder?project=" + encodeURIComponent(currentFilter), {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString()
+      }).then(function (resp) { return resp.text(); }).then(function (html) {
+        if (wrapper) {
+          wrapper.outerHTML = html;
+          initColumnReordering();
+        }
+      });
+    }
+
+    function initColumnReordering() {
+      var nativeOrder = getCurrentColumnOrder();
+      if (!nativeOrder.length) return;
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem("taskTableColumnOrder")); } catch (e) {}
+      var order = mergeColumnOrder(nativeOrder, saved);
+      applyColumnOrder(order);
+      attachColumnDragHandlers();
+      attachRowDragHandlers();
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnReordering);
+    document.addEventListener("htmx:afterSwap", initColumnReordering);
+
+    // ---- Draggable / reorderable checklist SUBTASKS ----
+    function attachChecklistDragHandlers() {
+      document.querySelectorAll(".checklist-list[data-task-id]").forEach(function (list) {
+        list.querySelectorAll(".checklist-drag-handle").forEach(function (handle) {
+          if (handle.dataset.bound) return;
+          handle.dataset.bound = "true";
+          handle.addEventListener("dragstart", function (e) {
+            var li = handle.closest("li");
+            e.dataTransfer.setData("text/plain", li.dataset.itemId);
+            e.dataTransfer.effectAllowed = "move";
+          });
+        });
+        list.querySelectorAll("li[data-item-id]").forEach(function (li) {
+          if (li.dataset.dropBound) return;
+          li.dataset.dropBound = "true";
+          li.addEventListener("dragover", function (e) { e.preventDefault(); });
+          li.addEventListener("drop", function (e) {
+            e.preventDefault();
+            var draggedId = e.dataTransfer.getData("text/plain");
+            if (!draggedId) return;
+            var draggedLi = list.querySelector('li[data-item-id="' + draggedId + '"]');
+            if (!draggedLi || draggedLi === li) return;
+            var rect = li.getBoundingClientRect();
+            var before = (e.clientY - rect.top) < rect.height / 2;
+            list.insertBefore(draggedLi, before ? li : li.nextSibling);
+            submitChecklistOrder(list);
+          });
+        });
+      });
+    }
+
+    function submitChecklistOrder(list) {
+      var ids = Array.from(list.querySelectorAll("li[data-item-id]")).map(function (li) {
+        return li.dataset.itemId;
+      });
+      var taskId = list.dataset.taskId;
+      var project = list.dataset.currentFilter || "all";
+      htmx.ajax(
+        "POST",
+        "/tasks/" + taskId + "/checklist/reorder?project=" + encodeURIComponent(project),
+        { target: "#modal-root", swap: "innerHTML", values: { order: ids.join(",") } }
+      );
+    }
+
+    document.addEventListener("DOMContentLoaded", attachChecklistDragHandlers);
+    document.addEventListener("htmx:afterSwap", attachChecklistDragHandlers);
+
+    // ---- Draggable / reorderable sidebar PROJECTS ----
+    function attachProjectDragHandlers() {
+      var list = document.querySelector(".sidebar-projects-list");
+      if (!list) return;
+      list.querySelectorAll(".sidebar-drag-handle").forEach(function (handle) {
+        if (handle.dataset.bound) return;
+        handle.dataset.bound = "true";
+        handle.addEventListener("dragstart", function (e) {
+          var row = handle.closest(".sidebar-row");
+          e.dataTransfer.setData("text/plain", row.dataset.projectId);
+          e.dataTransfer.effectAllowed = "move";
+        });
+      });
+      list.querySelectorAll(".sidebar-row[data-project-id]").forEach(function (row) {
+        if (row.dataset.dropBound) return;
+        row.dataset.dropBound = "true";
+        row.addEventListener("dragover", function (e) { e.preventDefault(); });
+        row.addEventListener("drop", function (e) {
+          e.preventDefault();
+          var draggedId = e.dataTransfer.getData("text/plain");
+          if (!draggedId) return;
+          var draggedRow = list.querySelector('.sidebar-row[data-project-id="' + draggedId + '"]');
+          if (!draggedRow || draggedRow === row) return;
+          var rect = row.getBoundingClientRect();
+          var before = (e.clientY - rect.top) < rect.height / 2;
+          list.insertBefore(draggedRow, before ? row : row.nextSibling);
+          submitProjectOrder(list);
+        });
+      });
+    }
+
+    function submitProjectOrder(list) {
+      var ids = Array.from(list.querySelectorAll(".sidebar-row[data-project-id]")).map(function (row) {
+        return row.dataset.projectId;
+      });
+      var currentFilter = list.dataset.currentFilter || "all";
+      htmx.ajax("POST", "/projects/reorder", {
+        target: "#sidebar",
+        swap: "outerHTML",
+        values: { order: ids.join(","), current_filter: currentFilter }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", attachProjectDragHandlers);
+    document.addEventListener("htmx:afterSwap", attachProjectDragHandlers);
+
+    // ---- Inline project-title rename (from the page header) ----
+    function startRenameTitle(h1) {
+      var wrap = h1.closest("#page-title");
+      var input = wrap.querySelector(".page-title-input");
+      h1.hidden = true;
+      input.hidden = false;
+      input.focus();
+      input.select();
+    }
+
+  </script>
+</head>
+<body>
+  {% block content %}{% endblock %}
+</body>
+</html>

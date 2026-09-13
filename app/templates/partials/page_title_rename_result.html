@@ -1,0 +1,17 @@
+<div id="page-title" class="page-title-editable">
+  <h1 class="page-title-label" onclick="startRenameTitle(this)" title="Click to rename">{{ project.name }}</h1>
+  <input
+    type="text"
+    class="page-title-input"
+    name="name"
+    value="{{ project.name }}"
+    hidden
+    hx-post="/projects/{{ project.id }}/rename"
+    hx-trigger="blur, keyup[key=='Enter']"
+    hx-target="#page-title"
+    hx-swap="outerHTML"
+    hx-vals='{"current_filter": "{{ current_filter }}"}'
+    onkeydown="if (event.key === 'Escape') { this.value = this.defaultValue; this.hidden = true; this.previousElementSibling.hidden = false; }"
+  >
+</div>
+{% include "partials/sidebar_oob.html" %}

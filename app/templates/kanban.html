@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% from "partials/macros.html" import filter_dropdown %}
+
+{% block content %}
+<div class="app-shell">
+  {% include "partials/sidebar.html" %}
+
+  <main class="main-content">
+    <header class="app-header">
+      <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">&#9776;</button>
+      <h1>Kanban</h1>
+    </header>
+
+    <form class="kanban-filter-form" method="get" action="/kanban">
+      <div class="filter-group">
+        <label>Project</label>
+        {{ filter_dropdown("projects", "All Projects", project_filter_label, project_filter_options, selected_projects) }}
+      </div>
+
+      <div class="filter-group">
+        <label>Priority</label>
+        {{ filter_dropdown("priorities", "All Priorities", priority_filter_label, priority_filter_options, selected_priorities) }}
+      </div>
+
+      <div class="filter-actions">
+        <button type="submit" class="btn-primary">Apply</button>
+        <a href="/kanban" class="btn-secondary-link">Reset</a>
+      </div>
+    </form>
+
+    <div class="kanban-board">
+      {% for column in columns %}
+      <div
+        class="kanban-column"
+        ondragover="event.preventDefault()"
+        ondrop="handleKanbanDrop(event, '{{ column.status.name }}')"
+      >
+        <div class="kanban-column-header" style="border-top-color: {{ column.status.color }}">
+          <span class="kanban-column-title">{{ column.status.name }}</span>
+          <span class="badge count-badge">{{ column.tasks|length }}</span>
+        </div>
+        <div class="kanban-column-body">
+          {% for task in column.tasks %}
+          <div
+            class="kanban-card priority-{{ task.priority.value | lower }}"
+            draggable="true"
+            ondragstart="event.dataTransfer.setData('text/plain', '{{ task.id }}')"
+            hx-get="/tasks/{{ task.id }}/edit?project=all&redirect_to=/kanban"
+            hx-target="#modal-root"
+            hx-swap="innerHTML"
+          >
+            <span class="chip chip-sm" style="background: {{ project_colors.get(task.project_id, '#888888') }}33; color: {{ project_colors.get(task.project_id, '#888888') }};">
+              {{ project_names.get(task.project_id, "") }}
+            </span>
+            <div class="kanban-card-title">{{ task.title }}</div>
+            <div class="kanban-card-meta">
+              <span class="badge priority-badge">{{ task.priority.value }}</span>
+              {% if task.deadline %}
+              <span class="badge deadline-badge">{{ task.deadline.strftime("%d %b") }}</span>
+              {% endif %}
+              {% if task.responsible %}
+              <span class="badge responsible-badge">{{ task.responsible }}</span>
+              {% endif %}
+            </div>
+          </div>
+          {% else %}
+          <p class="kanban-column-empty">No tasks</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </main>
+</div>
+
+<div id="modal-root"></div>
+
+<script>
+  function handleKanbanDrop(event, statusName) {
+    event.preventDefault();
+    var taskId = event.dataTransfer.getData('text/plain');
+    if (!taskId) return;
+    fetch('/tasks/' + taskId + '/field', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'field=status&value=' + encodeURIComponent(statusName)
+    }).then(function () {
+      window.location.reload();
+    });
+  }
+</script>
+{% endblock %}

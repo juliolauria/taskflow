@@ -1,0 +1,45 @@
+<div class="modal-overlay" onclick="window.location.reload()">
+  <div class="modal-box modal-box-narrow" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>{{ modal_title }}</h3>
+      <button type="button" class="modal-close" onclick="window.location.reload()" aria-label="Close">&times;</button>
+    </div>
+
+    {% if error %}<p class="modal-error">{{ error }}</p>{% endif %}
+
+    <ul class="option-manage-list">
+      {% for opt in options %}
+      <li class="option-manage-row">
+        {% if show_color %}
+        <span class="option-swatch" style="background: {{ opt.color }}"></span>
+        {% endif %}
+        <span class="option-name">{{ opt.name }}</span>
+        {% if opt.is_builtin %}
+        <span class="option-tag">Built-in</span>
+        {% else %}
+        <button
+          type="button"
+          class="option-delete"
+          hx-delete="{{ delete_url_prefix }}/{{ opt.id }}"
+          hx-target="#modal-root"
+          hx-swap="innerHTML"
+          hx-confirm="Remove &quot;{{ opt.name }}&quot;?"
+        >Remove</button>
+        {% endif %}
+      </li>
+      {% else %}
+      <li class="option-manage-empty">Nothing here yet.</li>
+      {% endfor %}
+    </ul>
+
+    <form class="option-add-form" hx-post="{{ add_url }}" hx-target="#modal-root" hx-swap="innerHTML">
+      <input type="text" name="name" placeholder="New {{ label_singular }}" required autocomplete="off">
+      {% if show_color %}
+      <input type="color" name="color" value="#4f8cff">
+      {% endif %}
+      <button type="submit" class="btn-primary">Add</button>
+    </form>
+
+    <p class="modal-hint">Closing this reloads the page so every dropdown picks up the change.</p>
+  </div>
+</div>

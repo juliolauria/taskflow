@@ -1,0 +1,117 @@
+<tr class="task-row-grid priority-{{ task.priority.value | lower }}">
+  <td class="col-done" data-col="done">
+    <form method="post" action="/tasks/{{ task.id }}/done" class="inline-form">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <button class="done-toggle" type="submit" aria-label="Mark done"></button>
+    </form>
+  </td>
+  <td data-col="project">
+    <span class="chip" style="background: {{ project_colors.get(task.project_id, '#888888') }}33; color: {{ project_colors.get(task.project_id, '#888888') }};">
+      {{ project_names.get(task.project_id, "") }}
+    </span>
+  </td>
+  <td data-col="title">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="title">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="text" name="value" class="cell-input" value="{{ task.title }}" onchange="this.form.requestSubmit()">
+    </form>
+  </td>
+  <td data-col="priority">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="priority">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <select
+        name="value"
+        class="cell-select priority-select"
+        style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};"
+        onchange="this.form.requestSubmit()"
+      >
+        {% for p in priorities %}
+        <option value="{{ p.value }}" style="background: {{ priority_colors.get(p.value, '#888888') }}; color: #fff;" {% if p == task.priority %}selected{% endif %}>{{ p.value }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </td>
+  <td data-col="status">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="status">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <select
+        name="value"
+        class="cell-select status-select"
+        style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};"
+        onchange="this.form.requestSubmit()"
+      >
+        {% for s in statuses %}
+        <option value="{{ s.name }}" style="background: {{ s.color }}; color: #fff;" {% if s.name == task.status %}selected{% endif %}>{{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </td>
+  <td data-col="responsible">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="responsible">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input
+        type="text"
+        name="value"
+        class="cell-input"
+        value="{{ task.responsible }}"
+        placeholder="Unassigned"
+        list="responsible-datalist"
+        onchange="this.form.requestSubmit()"
+      >
+    </form>
+  </td>
+  <td data-col="deadline">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="deadline">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input
+        type="date"
+        name="value"
+        class="cell-input"
+        value="{{ task.deadline.isoformat() if task.deadline else '' }}"
+        onchange="this.form.requestSubmit()"
+      >
+    </form>
+  </td>
+  <td data-col="comments">
+    <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
+      <input type="hidden" name="field" value="comments">
+      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input
+        type="text"
+        name="value"
+        class="cell-input"
+        value="{{ task.comments or '' }}"
+        placeholder="Add a comment…"
+        onchange="this.form.requestSubmit()"
+      >
+    </form>
+  </td>
+  <td data-col="checklist">
+    {% set total = checklist_totals.get(task.id, 0) %}
+    {% set done = checklist_done.get(task.id, 0) %}
+    <span
+      id="checklist-summary-{{ task.id }}"
+      class="checklist-summary {% if total and done == total %}complete{% endif %}"
+      hx-get="/tasks/{{ task.id }}/checklist"
+      hx-vals='{"project": "all", "redirect_to": "/views?{{ request_query }}"}'
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+    >{% if total %}&#9776; {{ done }}/{{ total }}{% else %}+ Checklist{% endif %}</span>
+  </td>
+  <td class="col-actions" data-col="actions">
+    <button
+      type="button"
+      class="row-expand"
+      hx-get="/tasks/{{ task.id }}/edit"
+      hx-vals='{"project": "all", "redirect_to": "/views?{{ request_query }}"}'
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+      title="More details"
+    >&#8942;</button>
+  </td>
+</tr>
