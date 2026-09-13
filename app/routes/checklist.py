@@ -8,7 +8,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 
-def _render_checklist(request: Request, task_id: int, project: str):
+def _render_checklist(request: Request, task_id: int, project: str, embedded: bool = False):
     with SessionLocal() as db:
         task = db.get(Task, task_id)
         if task is None:
@@ -22,22 +22,29 @@ def _render_checklist(request: Request, task_id: int, project: str):
         )
         done_count = sum(1 for item in items if item.done)
 
-        return templates.TemplateResponse(
-            request,
-            "partials/checklist_modal.html",
-            {
-                "task": task,
-                "items": items,
-                "done_count": done_count,
-                "total_count": len(items),
-                "current_filter": project,
-            },
-        )
+        context = {
+            "task": task,
+            "items": items,
+            "done_count": done_count,
+            "total_count": len(items),
+            "current_filter": project,
+            "embedded": embedded,
+        }
+
+        if embedded:
+            context["target_id"] = f"task-checklist-{task.id}"
+            return templates.TemplateResponse(
+                request, "partials/checklist_fragment.html", context
+            )
+
+        return templates.TemplateResponse(request, "partials/checklist_modal.html", context)
 
 
 @router.get("/tasks/{task_id}/checklist")
-def get_checklist(request: Request, task_id: int, project: str = Query("all")):
-    return _render_checklist(request, task_id, project)
+def get_checklist(
+    request: Request, task_id: int, project: str = Query("all"), embedded: str = Query("")
+):
+    return _render_checklist(request, task_id, project, embedded=bool(embedded))
 
 
 @router.post("/tasks/{task_id}/checklist")
@@ -46,6 +53,7 @@ def add_checklist_item(
     task_id: int,
     title: str = Form(...),
     project: str = Query("all"),
+    embedded: str = Query(""),
 ):
     title = title.strip()
     if title:
@@ -55,7 +63,7 @@ def add_checklist_item(
                 db.add(ChecklistItem(task_id=task_id, title=title, sort_order=count))
                 db.commit()
 
-    return _render_checklist(request, task_id, project)
+    return _render_checklist(request, task_id, project, embedded=bool(embedded))
 
 
 @router.post("/tasks/{task_id}/checklist/reorder")
@@ -64,6 +72,7 @@ def reorder_checklist(
     task_id: int,
     order: str = Form(...),
     project: str = Query("all"),
+    embedded: str = Query(""),
 ):
     ids = [int(i) for i in order.split(",") if i]
 
@@ -80,11 +89,13 @@ def reorder_checklist(
                 item.sort_order = index
         db.commit()
 
-    return _render_checklist(request, task_id, project)
+    return _render_checklist(request, task_id, project, embedded=bool(embedded))
 
 
 @router.post("/checklist/{item_id}/toggle")
-def toggle_checklist_item(request: Request, item_id: int, project: str = Query("all")):
+def toggle_checklist_item(
+    request: Request, item_id: int, project: str = Query("all"), embedded: str = Query("")
+):
     task_id = None
     with SessionLocal() as db:
         item = db.get(ChecklistItem, item_id)
@@ -95,11 +106,13 @@ def toggle_checklist_item(request: Request, item_id: int, project: str = Query("
 
     if task_id is None:
         return templates.TemplateResponse(request, "partials/empty.html", {})
-    return _render_checklist(request, task_id, project)
+    return _render_checklist(request, task_id, project, embedded=bool(embedded))
 
 
 @router.delete("/checklist/{item_id}")
-def delete_checklist_item(request: Request, item_id: int, project: str = Query("all")):
+def delete_checklist_item(
+    request: Request, item_id: int, project: str = Query("all"), embedded: str = Query("")
+):
     task_id = None
     with SessionLocal() as db:
         item = db.get(ChecklistItem, item_id)
@@ -110,4 +123,4 @@ def delete_checklist_item(request: Request, item_id: int, project: str = Query("
 
     if task_id is None:
         return templates.TemplateResponse(request, "partials/empty.html", {})
-    return _render_checklist(request, task_id, project)
+    return _render_checklist(request, task_id, project, embedded=bool(embedded))

@@ -13,57 +13,50 @@
       </label>
 
       <label class="field">
-        <span>Notes</span>
-        <textarea name="notes" rows="3" placeholder="Add more detail…">{{ task.notes or "" }}</textarea>
-      </label>
-
-      <label class="field">
         <span>Comments</span>
         <textarea name="comments" rows="2" placeholder="Quick comment…">{{ task.comments or "" }}</textarea>
       </label>
 
-      <div class="modal-grid">
-        <label class="field">
-          <span>Project</span>
-          <select name="project_id" required>
-            {% for p in projects %}
-            <option value="{{ p.id }}" {% if p.id == task.project_id %}selected{% endif %}>{{ p.name }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label class="field">
+        <span>Project</span>
+        <select name="project_id" required>
+          {% for p in projects %}
+          <option value="{{ p.id }}" {% if p.id == task.project_id %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <label class="field">
-          <span>Status <button type="button" class="manage-link" hx-get="/statuses/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
-          <select name="status" style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};">
-            {% for s in statuses %}
-            <option value="{{ s.name }}" style="background: {{ s.color }}; color: #fff;" {% if s.name == task.status %}selected{% endif %}>{{ s.name }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label class="field">
+        <span>Status <button type="button" class="manage-link" hx-get="/statuses/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
+        <select name="status" style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};">
+          {% for s in statuses %}
+          <option value="{{ s.name }}" style="background: {{ s.color }}; color: #fff;" {% if s.name == task.status %}selected{% endif %}>{{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <label class="field">
-          <span>Priority</span>
-          <select name="priority" style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};">
-            {% for p in priorities %}
-            <option value="{{ p.value }}" style="background: {{ priority_colors.get(p.value, '#888888') }}; color: #fff;" {% if p == task.priority %}selected{% endif %}>{{ p.value }}</option>
-            {% endfor %}
-          </select>
-        </label>
+      <label class="field">
+        <span>Priority</span>
+        <select name="priority" style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};">
+          {% for p in priorities %}
+          <option value="{{ p.value }}" style="background: {{ priority_colors.get(p.value, '#888888') }}; color: #fff;" {% if p == task.priority %}selected{% endif %}>{{ p.value }}</option>
+          {% endfor %}
+        </select>
+      </label>
 
-        <label class="field">
-          <span>Responsible <button type="button" class="manage-link" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
-          <input type="text" name="responsible" value="{{ task.responsible }}" list="responsible-datalist" placeholder="Unassigned">
-        </label>
+      <label class="field">
+        <span>Responsible <button type="button" class="manage-link" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
+        <input type="text" name="responsible" value="{{ task.responsible }}" list="responsible-datalist" placeholder="Unassigned">
+      </label>
 
-        <label class="field">
-          <span>Deadline</span>
-          <input type="date" name="deadline" value="{{ task.deadline.isoformat() if task.deadline else '' }}">
-        </label>
+      <label class="field">
+        <span>Target date</span>
+        <input type="date" name="deadline" value="{{ task.deadline.isoformat() if task.deadline else '' }}">
+      </label>
 
-        <label class="field">
-          <span>Last pinged</span>
-          <input type="date" name="last_pinged_at" value="{{ task.last_pinged_at.isoformat() if task.last_pinged_at else '' }}">
-        </label>
+      <div class="field">
+        <span>Date created</span>
+        <p class="field-readonly">{{ task.created_at.strftime("%d %b %Y") if task.created_at else "—" }}</p>
       </div>
 
       <div class="modal-actions">
@@ -82,5 +75,12 @@
         </div>
       </div>
     </form>
+
+    <div class="task-checklist-block">
+      <h4>Checklist</h4>
+      <div id="{{ target_id }}">
+        {% include "partials/checklist_fragment.html" %}
+      </div>
+    </div>
   </div>
 </div>

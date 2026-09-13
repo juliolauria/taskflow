@@ -947,11 +947,13 @@ tr.task-row-grid {
   resize: vertical;
 }
 
-.modal-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 0.75rem;
+.field-readonly {
+  margin: 0;
+  padding: 0.6rem 0.7rem;
+  font-size: 0.95rem;
+  color: var(--text-dim);
 }
+
 
 .modal-actions {
   display: flex;
@@ -1005,6 +1007,28 @@ tr.task-row-grid {
 
 .manage-link:hover {
   text-decoration: underline;
+}
+
+.task-checklist-block {
+  margin-top: 1.1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.task-checklist-block h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.checklist-progress {
+  font-weight: 400;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 0 0 0.5rem;
 }
 
 /* ---------- Manage options modal ---------- */
@@ -1475,9 +1499,5 @@ tr.task-row-grid {
   .sidebar {
     width: 82vw;
     max-width: 280px;
-  }
-
-  .modal-grid {
-    grid-template-columns: 1fr;
   }
 }

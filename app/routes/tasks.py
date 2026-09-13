@@ -10,6 +10,7 @@ from ..models import (
     PRIORITY_COLORS,
     STATUS_DONE,
     STATUS_TODO,
+    ChecklistItem,
     Priority,
     Project,
     ResponsibleOption,
@@ -223,6 +224,14 @@ def edit_task_form(
         )
         responsible_options = db.query(ResponsibleOption).order_by(ResponsibleOption.name).all()
 
+        checklist_items = (
+            db.query(ChecklistItem)
+            .filter(ChecklistItem.task_id == task_id)
+            .order_by(ChecklistItem.sort_order, ChecklistItem.id)
+            .all()
+        )
+        done_count = sum(1 for item in checklist_items if item.done)
+
         return templates.TemplateResponse(
             request,
             "partials/task_modal.html",
@@ -236,6 +245,11 @@ def edit_task_form(
                 "responsible_options": responsible_options,
                 "current_filter": project,
                 "redirect_to": redirect_to,
+                "items": checklist_items,
+                "done_count": done_count,
+                "total_count": len(checklist_items),
+                "target_id": f"task-checklist-{task.id}",
+                "embedded": True,
             },
         )
 
@@ -246,21 +260,18 @@ def update_task(
     task_id: int,
     project: str = Query("all"),
     title: str = Form(...),
-    notes: str = Form(""),
     comments: str = Form(""),
     project_id: str = Form(""),
     priority: str = Form(...),
     status: str = Form(...),
     responsible: str = Form(""),
     deadline: str = Form(""),
-    last_pinged_at: str = Form(""),
     redirect_to: str = Form(""),
 ):
     with SessionLocal() as db:
         task = db.get(Task, task_id)
         if task is not None:
             task.title = title.strip() or task.title
-            task.notes = notes.strip() or None
             task.comments = comments.strip()
             if project_id:
                 task.project_id = int(project_id)
@@ -269,9 +280,6 @@ def update_task(
             task.responsible = responsible
             _remember_responsible(db, responsible)
             task.deadline = date.fromisoformat(deadline) if deadline else None
-            task.last_pinged_at = (
-                date.fromisoformat(last_pinged_at) if last_pinged_at else None
-            )
 
             if status == STATUS_DONE and task.status != STATUS_DONE:
                 task.completed_at = datetime.utcnow()

@@ -6,5 +6,5 @@ backups/
 /data/
 .env
 *.log
-.env
-.vscode
+.vscode/
+.claude/

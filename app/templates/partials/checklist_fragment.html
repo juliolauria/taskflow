@@ -1,0 +1,49 @@
+{% set query = "project=" ~ current_filter %}{% if embedded %}{% set query = query ~ "&embedded=1" %}{% endif %}
+{% if embedded %}<p class="checklist-progress">{{ done_count }}/{{ total_count }} done</p>{% endif %}
+<ul class="checklist-list" data-task-id="{{ task.id }}" data-current-filter="{{ current_filter }}">
+  {% for item in items %}
+  <li class="checklist-item {% if item.done %}done{% endif %}" data-item-id="{{ item.id }}">
+    <span class="checklist-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+    <button
+      type="button"
+      class="checklist-toggle {% if item.done %}checked{% endif %}"
+      hx-post="/checklist/{{ item.id }}/toggle?{{ query }}"
+      hx-target="#{{ target_id }}"
+      hx-swap="innerHTML"
+      aria-label="Toggle subtask"
+    ></button>
+    <span class="checklist-item-title">{{ item.title }}</span>
+    <button
+      type="button"
+      class="checklist-delete"
+      hx-delete="/checklist/{{ item.id }}?{{ query }}"
+      hx-target="#{{ target_id }}"
+      hx-swap="innerHTML"
+      aria-label="Remove subtask"
+    >&times;</button>
+  </li>
+  {% else %}
+  <li class="checklist-empty">No subtasks yet.</li>
+  {% endfor %}
+</ul>
+
+<form
+  class="checklist-add-form"
+  hx-post="/tasks/{{ task.id }}/checklist?{{ query }}"
+  hx-target="#{{ target_id }}"
+  hx-swap="innerHTML"
+>
+  <input type="text" name="title" placeholder="Add a subtask…" required autocomplete="off">
+  <button type="submit" class="btn-primary">Add</button>
+</form>
+
+<span
+  id="checklist-summary-{{ task.id }}"
+  class="checklist-summary {% if total_count and done_count == total_count %}complete{% endif %}"
+  hx-swap-oob="true"
+  hx-get="/tasks/{{ task.id }}/checklist?project={{ current_filter }}"
+  hx-target="#modal-root"
+  hx-swap="innerHTML"
+>
+  {% if total_count %}&#9776; {{ done_count }}/{{ total_count }}{% else %}+ Checklist{% endif %}
+</span>
