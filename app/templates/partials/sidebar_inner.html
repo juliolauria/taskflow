@@ -4,7 +4,7 @@
   </div>
 
   <nav class="sidebar-nav">
-    <a href="/?reset=1" class="sidebar-link {% if current_filter == 'all' %}active{% endif %}">
+    <a href="/" onclick="navigateAllTasks(event)" class="sidebar-link {% if current_filter == 'all' %}active{% endif %}">
       <span class="dot dot-all"></span> All Tasks
     </a>
     <a href="/kanban" class="sidebar-link {% if current_filter == 'kanban' %}active{% endif %}">
@@ -28,7 +28,7 @@
           hx-vals='{"current_filter": "{{ current_filter }}"}'
           title="Change project color"
         >
-        <a href="/?projects={{ project.id }}" class="sidebar-link-label">{{ project.name }}</a>
+        <a href="/?projects={{ project.id }}" onclick="navigateToProject('{{ project.id }}', event)" class="sidebar-link-label">{{ project.name }}</a>
       </div>
       {% else %}
       <p class="sidebar-empty">No projects yet</p>

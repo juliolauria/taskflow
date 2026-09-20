@@ -5,8 +5,11 @@
   hx-vals='{"project": "all", "redirect_to": "/?{{ request_query }}"}'
   hx-target="#modal-root"
   hx-swap="innerHTML"
-  hx-trigger="click[!event.target.closest('input,select,button,a,.checklist-summary')]"
+  hx-trigger="click[!event.target.closest('input,select,button,a,.checklist-summary,.row-drag-handle')]"
 >
+  <td class="col-drag" data-col="drag">
+    <span class="row-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+  </td>
   <td class="col-done" data-col="done">
     <form method="post" action="/tasks/{{ task.id }}/done" class="inline-form">
       <input type="hidden" name="redirect_to" value="/?{{ request_query }}">

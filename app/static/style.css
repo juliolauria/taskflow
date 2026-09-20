@@ -627,6 +627,29 @@ input[type="color"].dot-project::-moz-color-swatch {
   color: var(--text);
 }
 
+.task-table th.col-drag,
+.task-table td.col-drag {
+  width: 28px;
+  padding-left: 0.6rem;
+  padding-right: 0;
+}
+
+.row-drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: var(--text-dim);
+  cursor: grab;
+  letter-spacing: -3px;
+  font-size: 0.95rem;
+  user-select: none;
+}
+
+.row-drag-handle:hover {
+  color: var(--text);
+}
+
 .task-row-grid[draggable="true"],
 tr.task-row-grid {
   cursor: default;

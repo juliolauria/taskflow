@@ -83,6 +83,27 @@ def create_task(
     return _redirect_home(redirect_to)
 
 
+@router.post("/tasks/reorder")
+def reorder_tasks(
+    request: Request,
+    order: list[str] = Form(...),
+    redirect_to: str = Form(""),
+):
+    ids = [int(i) for i in order if i]
+
+    with SessionLocal() as db:
+        tasks = db.query(Task).filter(Task.id.in_(ids)).all()
+        tasks_by_id = {t.id: t for t in tasks}
+        base = min((t.position for t in tasks), default=0)
+        for index, task_id in enumerate(ids):
+            task = tasks_by_id.get(task_id)
+            if task is not None:
+                task.position = base + index * 10
+        db.commit()
+
+    return _redirect_home(redirect_to)
+
+
 @router.post("/tasks/{task_id}/done")
 def mark_done(
     request: Request,

@@ -138,9 +138,12 @@ def build_tasks_context(
     else:
         sidebar_filter = "all"
 
+    single_project_id = projects[0] if len(projects) == 1 else None
+
     return {
         "groups": groups,
         "completed_tasks": completed_tasks,
+        "single_project_id": single_project_id,
         "all_projects": all_projects,
         "projects": all_projects,
         "priorities": list(Priority),
