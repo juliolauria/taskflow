@@ -198,6 +198,105 @@
     document.addEventListener("DOMContentLoaded", initColumnReordering);
     document.addEventListener("htmx:afterSwap", initColumnReordering);
 
+    // ---- Sortable task-table columns ----
+    // Clicking a sortable column header cycles: original order -> ascending
+    // -> descending -> back to original. Sort state is kept in memory only
+    // (not persisted) and is re-applied after every htmx swap, since editing
+    // a row re-renders the whole table from the server's position order.
+    var activeSort = { col: null, dir: null };
+    var originalOrders = new WeakMap();
+
+    function captureOriginalOrders() {
+      document.querySelectorAll(".task-table tbody").forEach(function (tbody) {
+        var ids = Array.from(tbody.querySelectorAll("tr[data-task-id]")).map(function (r) {
+          return r.dataset.taskId;
+        });
+        originalOrders.set(tbody, ids);
+      });
+    }
+
+    function sortCellValue(row, col) {
+      var cell = row.querySelector('td[data-col="' + col + '"]');
+      if (!cell) return "";
+      var select = cell.querySelector("select");
+      if (select) return select.selectedIndex;
+      var input = cell.querySelector('input[name="value"]') || cell.querySelector("input:not([type=hidden])");
+      if (input) return input.value.toLowerCase();
+      return cell.textContent.trim().toLowerCase();
+    }
+
+    function applySortToTable(tbody) {
+      var original = originalOrders.get(tbody) || [];
+      var rowsById = {};
+      Array.from(tbody.querySelectorAll("tr[data-task-id]")).forEach(function (row) {
+        rowsById[row.dataset.taskId] = row;
+      });
+
+      if (!activeSort.col) {
+        original.forEach(function (id) {
+          if (rowsById[id]) tbody.appendChild(rowsById[id]);
+        });
+        return;
+      }
+
+      var ids = original.filter(function (id) { return rowsById[id]; });
+      var dir = activeSort.dir === "desc" ? -1 : 1;
+      ids.sort(function (a, b) {
+        var va = sortCellValue(rowsById[a], activeSort.col);
+        var vb = sortCellValue(rowsById[b], activeSort.col);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+      ids.forEach(function (id) { tbody.appendChild(rowsById[id]); });
+    }
+
+    function applySortToAllTables() {
+      document.querySelectorAll(".task-table tbody").forEach(applySortToTable);
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll(".task-table th.col-sortable").forEach(function (th) {
+        th.classList.remove("sort-asc", "sort-desc");
+        if (th.dataset.col === activeSort.col) {
+          th.classList.add(activeSort.dir === "desc" ? "sort-desc" : "sort-asc");
+        }
+      });
+    }
+
+    function attachSortHandlers() {
+      document.querySelectorAll(".task-table th.col-sortable .col-label").forEach(function (label) {
+        if (label.dataset.sortBound) return;
+        label.dataset.sortBound = "true";
+        label.addEventListener("click", function () {
+          var col = label.closest("th").dataset.col;
+          if (activeSort.col !== col) {
+            activeSort.col = col;
+            activeSort.dir = "asc";
+          } else if (activeSort.dir === "asc") {
+            activeSort.dir = "desc";
+          } else if (activeSort.dir === "desc") {
+            activeSort.col = null;
+            activeSort.dir = null;
+          } else {
+            activeSort.dir = "asc";
+          }
+          applySortToAllTables();
+          updateSortIndicators();
+        });
+      });
+    }
+
+    function initSorting() {
+      captureOriginalOrders();
+      attachSortHandlers();
+      applySortToAllTables();
+      updateSortIndicators();
+    }
+
+    document.addEventListener("DOMContentLoaded", initSorting);
+    document.addEventListener("htmx:afterSwap", initSorting);
+
     // ---- Draggable / reorderable checklist SUBTASKS ----
     function attachChecklistDragHandlers() {
       document.querySelectorAll(".checklist-list[data-task-id]").forEach(function (list) {
