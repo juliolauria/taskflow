@@ -29,6 +29,8 @@
             <button type="button" class="col-manage-btn" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML" title="Manage responsible">&#9881;</button>
           </th>
           <th data-col="deadline" class="col-sortable"><span class="col-label">Deadline</span></th>
+          <th data-col="created" class="col-sortable"><span class="col-label">Created</span></th>
+          <th data-col="updated" class="col-sortable"><span class="col-label">Updated</span></th>
           <th data-col="comments" class="col-sortable"><span class="col-label">Comments</span></th>
           <th data-col="checklist" class="col-sortable"><span class="col-label">Checklist</span></th>
           <th class="col-actions" data-col="actions"></th>
@@ -128,6 +130,12 @@
               hx-target="#task-list"
               hx-swap="outerHTML"
             >
+          </td>
+          <td data-col="created">
+            <span class="cell-static">{{ task.created_at.strftime("%d %b %Y") if task.created_at else "" }}</span>
+          </td>
+          <td data-col="updated">
+            <span class="cell-static">{{ task.updated_at.strftime("%d %b %Y") if task.updated_at else "" }}</span>
           </td>
           <td data-col="comments">
             <input

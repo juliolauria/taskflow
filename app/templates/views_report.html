@@ -9,6 +9,12 @@
     <header class="app-header">
       <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">&#9776;</button>
       <h1>Filters</h1>
+      <div class="columns-toggle dropdown-filter">
+        <button type="button" class="dropdown-filter-btn columns-toggle-btn" onclick="toggleColumnsMenu(this)">
+          <span>Columns</span> <span class="dropdown-caret">&#9662;</span>
+        </button>
+        <div class="dropdown-filter-panel columns-toggle-panel" hidden></div>
+      </div>
     </header>
 
     <datalist id="responsible-datalist">
@@ -79,6 +85,8 @@
                   <th data-col="status" class="col-sortable"><span class="col-label">Status</span></th>
                   <th data-col="responsible" class="col-sortable"><span class="col-label">Responsible</span></th>
                   <th data-col="deadline" class="col-sortable"><span class="col-label">Deadline</span></th>
+                  <th data-col="created" class="col-sortable"><span class="col-label">Created</span></th>
+                  <th data-col="updated" class="col-sortable"><span class="col-label">Updated</span></th>
                   <th data-col="comments" class="col-sortable"><span class="col-label">Comments</span></th>
                   <th data-col="checklist" class="col-sortable"><span class="col-label">Checklist</span></th>
                   <th class="col-actions" data-col="actions"></th>

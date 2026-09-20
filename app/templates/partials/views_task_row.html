@@ -77,6 +77,12 @@
       >
     </form>
   </td>
+  <td data-col="created">
+    <span class="cell-static">{{ task.created_at.strftime("%d %b %Y") if task.created_at else "" }}</span>
+  </td>
+  <td data-col="updated">
+    <span class="cell-static">{{ task.updated_at.strftime("%d %b %Y") if task.updated_at else "" }}</span>
+  </td>
   <td data-col="comments">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="comments">

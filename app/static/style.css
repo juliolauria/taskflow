@@ -80,6 +80,11 @@ a {
   min-width: 0;
 }
 
+.columns-toggle {
+  margin-left: auto;
+  flex: none;
+}
+
 .page-title-label {
   margin: 0;
   font-size: 1.3rem;
@@ -457,6 +462,27 @@ input[type="color"].dot-project::-moz-color-swatch {
   cursor: grabbing;
 }
 
+.task-table th {
+  position: relative;
+}
+
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 5;
+}
+
+.col-resize-handle:hover,
+.col-resize-handle.resizing {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
 .task-table th.col-sortable .col-label {
   cursor: pointer;
   user-select: none;
@@ -520,6 +546,21 @@ input[type="color"].dot-project::-moz-color-swatch {
 .task-table th[data-col="comments"],
 .task-table td[data-col="comments"] {
   width: 14%;
+}
+
+.task-table th[data-col="created"],
+.task-table td[data-col="created"],
+.task-table th[data-col="updated"],
+.task-table td[data-col="updated"] {
+  width: 9%;
+  white-space: nowrap;
+}
+
+.cell-static {
+  display: inline-block;
+  padding: 0.5rem 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
 }
 
 .cell-input,

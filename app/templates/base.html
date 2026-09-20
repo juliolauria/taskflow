@@ -198,6 +198,166 @@
     document.addEventListener("DOMContentLoaded", initColumnReordering);
     document.addEventListener("htmx:afterSwap", initColumnReordering);
 
+    // ---- Resizable task-table columns ----
+    // Column widths are a per-browser display preference (not shared data),
+    // so they're kept in localStorage, same as column order.
+    function loadColumnWidths() {
+      try {
+        return JSON.parse(localStorage.getItem("taskTableColumnWidths")) || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function applyColumnWidths(widths) {
+      Object.keys(widths).forEach(function (col) {
+        var px = widths[col] + "px";
+        document.querySelectorAll('.task-table [data-col="' + col + '"]').forEach(function (cell) {
+          cell.style.width = px;
+        });
+      });
+    }
+
+    function attachColumnResizeHandlers() {
+      document.querySelectorAll(".task-table thead th[data-col]").forEach(function (th) {
+        var col = th.dataset.col;
+        if (col === "drag" || col === "done" || col === "actions" || th.dataset.resizeBound) return;
+        th.dataset.resizeBound = "true";
+        var handle = document.createElement("span");
+        handle.className = "col-resize-handle";
+        handle.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var startX = e.clientX;
+          var startWidth = th.getBoundingClientRect().width;
+          handle.classList.add("resizing");
+          function onMove(ev) {
+            var width = Math.max(40, startWidth + (ev.clientX - startX));
+            var widths = {};
+            widths[col] = Math.round(width);
+            applyColumnWidths(widths);
+          }
+          function onUp() {
+            handle.classList.remove("resizing");
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            var widths = loadColumnWidths();
+            widths[col] = Math.round(th.getBoundingClientRect().width);
+            localStorage.setItem("taskTableColumnWidths", JSON.stringify(widths));
+          }
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+        });
+        th.appendChild(handle);
+      });
+    }
+
+    function initColumnResizing() {
+      applyColumnWidths(loadColumnWidths());
+      attachColumnResizeHandlers();
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnResizing);
+    document.addEventListener("htmx:afterSwap", initColumnResizing);
+
+    // ---- Column visibility toggle ----
+    // Applies to every .task-table on the page, so it works the same way
+    // across the active list view and the Views report page.
+    var ALWAYS_VISIBLE_COLS = ["drag", "done", "actions"];
+
+    function loadHiddenColumns() {
+      try {
+        return JSON.parse(localStorage.getItem("taskTableHiddenColumns")) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHiddenColumns(hidden) {
+      localStorage.setItem("taskTableHiddenColumns", JSON.stringify(hidden));
+    }
+
+    function applyColumnVisibility(hidden) {
+      document.querySelectorAll(".task-table").forEach(function (table) {
+        table.querySelectorAll("[data-col]").forEach(function (cell) {
+          cell.style.display = hidden.indexOf(cell.dataset.col) !== -1 ? "none" : "";
+        });
+      });
+    }
+
+    function getToggleableColumns() {
+      var firstTable = document.querySelector(".task-table");
+      if (!firstTable) return [];
+      var headerRow = firstTable.querySelector("thead tr");
+      if (!headerRow) return [];
+      return Array.from(headerRow.children)
+        .map(function (th) {
+          var col = th.dataset.col;
+          if (!col || ALWAYS_VISIBLE_COLS.indexOf(col) !== -1) return null;
+          var label = th.querySelector(".col-label");
+          return { col: col, label: label ? label.textContent.trim() : col };
+        })
+        .filter(Boolean);
+    }
+
+    function buildColumnsPanel(panel) {
+      var columns = getToggleableColumns();
+      var hidden = loadHiddenColumns();
+      panel.innerHTML = "";
+
+      var actions = document.createElement("div");
+      actions.className = "dropdown-filter-actions";
+      var showAll = document.createElement("button");
+      showAll.type = "button";
+      showAll.textContent = "Show all";
+      showAll.addEventListener("click", function () {
+        saveHiddenColumns([]);
+        applyColumnVisibility([]);
+        buildColumnsPanel(panel);
+      });
+      actions.appendChild(showAll);
+      panel.appendChild(actions);
+
+      var options = document.createElement("div");
+      options.className = "dropdown-filter-options";
+      columns.forEach(function (meta) {
+        var label = document.createElement("label");
+        label.className = "dropdown-filter-option";
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = hidden.indexOf(meta.col) === -1;
+        checkbox.addEventListener("change", function () {
+          var current = loadHiddenColumns();
+          if (checkbox.checked) {
+            current = current.filter(function (c) { return c !== meta.col; });
+          } else if (current.indexOf(meta.col) === -1) {
+            current.push(meta.col);
+          }
+          saveHiddenColumns(current);
+          applyColumnVisibility(current);
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(meta.label));
+        options.appendChild(label);
+      });
+      panel.appendChild(options);
+    }
+
+    function toggleColumnsMenu(btn) {
+      var panel = btn.parentElement.querySelector(".columns-toggle-panel");
+      var wasHidden = panel.hidden;
+      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+      panel.hidden = !wasHidden;
+      if (!panel.hidden) buildColumnsPanel(panel);
+    }
+
+    function initColumnVisibility() {
+      applyColumnVisibility(loadHiddenColumns());
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnVisibility);
+    document.addEventListener("htmx:afterSwap", initColumnVisibility);
+
     // ---- Sortable task-table columns ----
     // Clicking a sortable column header cycles: original order -> ascending
     // -> descending -> back to original. Sort state is kept in memory only

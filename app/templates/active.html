@@ -27,6 +27,12 @@
       {% else %}
       <h1>{{ view_title }}</h1>
       {% endif %}
+      <div class="columns-toggle dropdown-filter">
+        <button type="button" class="dropdown-filter-btn columns-toggle-btn" onclick="toggleColumnsMenu(this)">
+          <span>Columns</span> <span class="dropdown-caret">&#9662;</span>
+        </button>
+        <div class="dropdown-filter-panel columns-toggle-panel" hidden></div>
+      </div>
     </header>
 
     <datalist id="responsible-datalist">
