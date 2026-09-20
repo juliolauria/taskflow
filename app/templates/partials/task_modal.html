@@ -1,7 +1,6 @@
 <div class="modal-overlay" onclick="document.getElementById('modal-root').innerHTML=''">
   <div class="modal-box" onclick="event.stopPropagation()">
-    <form hx-post="/tasks/{{ task.id }}?project={{ current_filter }}" hx-target="#modal-root" hx-swap="innerHTML">
-      <input type="hidden" name="redirect_to" value="{{ redirect_to or '' }}">
+    <div>
       <div class="modal-header">
         <h3>Edit task</h3>
         <button type="button" class="modal-close" onclick="document.getElementById('modal-root').innerHTML=''" aria-label="Close">&times;</button>
@@ -9,17 +8,41 @@
 
       <label class="field">
         <span>Title</span>
-        <input type="text" name="title" value="{{ task.title }}" required>
+        <input
+          type="text"
+          value="{{ task.title }}"
+          name="value"
+          required
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="input changed delay:500ms, change, blur"
+          hx-vals='{"field": "title"}'
+          hx-swap="none"
+        >
       </label>
 
       <label class="field">
         <span>Comments</span>
-        <textarea name="comments" rows="2" placeholder="Quick comment…">{{ task.comments or "" }}</textarea>
+        <textarea
+          name="value"
+          rows="2"
+          placeholder="Quick comment…"
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="input changed delay:500ms, change, blur"
+          hx-vals='{"field": "comments"}'
+          hx-swap="none"
+        >{{ task.comments or "" }}</textarea>
       </label>
 
       <label class="field">
         <span>Project</span>
-        <select name="project_id" required>
+        <select
+          name="value"
+          required
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="change"
+          hx-vals='{"field": "project_id"}'
+          hx-swap="none"
+        >
           {% for p in projects %}
           <option value="{{ p.id }}" {% if p.id == task.project_id %}selected{% endif %}>{{ p.name }}</option>
           {% endfor %}
@@ -28,7 +51,14 @@
 
       <label class="field">
         <span>Status <button type="button" class="manage-link" hx-get="/statuses/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
-        <select name="status" style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};">
+        <select
+          name="value"
+          style="background: {{ status_colors.get(task.status, '#888888') }}33; color: {{ status_colors.get(task.status, '#888888') }};"
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="change"
+          hx-vals='{"field": "status"}'
+          hx-swap="none"
+        >
           {% for s in statuses %}
           <option value="{{ s.name }}" style="background: {{ s.color }}; color: #fff;" {% if s.name == task.status %}selected{% endif %}>{{ s.name }}</option>
           {% endfor %}
@@ -37,7 +67,14 @@
 
       <label class="field">
         <span>Priority</span>
-        <select name="priority" style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};">
+        <select
+          name="value"
+          style="background: {{ priority_colors.get(task.priority.value, '#888888') }}33; color: {{ priority_colors.get(task.priority.value, '#888888') }};"
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="change"
+          hx-vals='{"field": "priority"}'
+          hx-swap="none"
+        >
           {% for p in priorities %}
           <option value="{{ p.value }}" style="background: {{ priority_colors.get(p.value, '#888888') }}; color: #fff;" {% if p == task.priority %}selected{% endif %}>{{ p.value }}</option>
           {% endfor %}
@@ -46,12 +83,30 @@
 
       <label class="field">
         <span>Responsible <button type="button" class="manage-link" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML">Manage</button></span>
-        <input type="text" name="responsible" value="{{ task.responsible }}" list="responsible-datalist" placeholder="Unassigned">
+        <input
+          type="text"
+          value="{{ task.responsible }}"
+          list="responsible-datalist"
+          placeholder="Unassigned"
+          name="value"
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="input changed delay:500ms, change, blur"
+          hx-vals='{"field": "responsible"}'
+          hx-swap="none"
+        >
       </label>
 
       <label class="field">
         <span>Target date</span>
-        <input type="date" name="deadline" value="{{ task.deadline.isoformat() if task.deadline else '' }}">
+        <input
+          type="date"
+          value="{{ task.deadline.isoformat() if task.deadline else '' }}"
+          name="value"
+          hx-post="/tasks/{{ task.id }}/field?project={{ current_filter }}"
+          hx-trigger="change"
+          hx-vals='{"field": "deadline"}'
+          hx-swap="none"
+        >
       </label>
 
       <div class="field">
@@ -70,11 +125,10 @@
           hx-confirm="Delete this task?"
         >Delete</button>
         <div class="modal-actions-right">
-          <button type="button" class="btn-secondary" onclick="document.getElementById('modal-root').innerHTML=''">Cancel</button>
-          <button type="submit" class="btn-primary">Save</button>
+          <button type="button" class="btn-secondary" onclick="document.getElementById('modal-root').innerHTML=''">Close</button>
         </div>
       </div>
-    </form>
+    </div>
 
     <div class="task-checklist-block">
       <h4>Checklist</h4>
