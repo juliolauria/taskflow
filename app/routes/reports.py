@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Query, Request
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func
@@ -5,6 +7,7 @@ from sqlalchemy import func
 from ..database import SessionLocal
 from ..models import (
     PRIORITY_COLORS,
+    STATUS_DONE,
     ChecklistItem,
     Priority,
     Project,
@@ -31,7 +34,7 @@ def _filter_label(
     return f"{len(selected)} selected"
 
 
-@router.get("/views")
+@router.get("/filters")
 def views_page(
     request: Request,
     group_by: str = Query(""),
@@ -49,7 +52,7 @@ def views_page(
         )
         responsible_options = db.query(ResponsibleOption).order_by(ResponsibleOption.name).all()
 
-        query = db.query(Task)
+        query = db.query(Task).filter(Task.status != STATUS_DONE)
         if projects:
             query = query.filter(Task.project_id.in_([int(p) for p in projects]))
         if priorities:
@@ -60,6 +63,20 @@ def views_page(
             query = query.filter(Task.responsible.in_(responsibles))
 
         tasks = sorted(query.all(), key=_sort_key)
+
+        completed_query = db.query(Task).filter(Task.status == STATUS_DONE)
+        if projects:
+            completed_query = completed_query.filter(Task.project_id.in_([int(p) for p in projects]))
+        if priorities:
+            completed_query = completed_query.filter(Task.priority.in_([Priority(p) for p in priorities]))
+        if responsibles:
+            completed_query = completed_query.filter(Task.responsible.in_(responsibles))
+
+        completed_tasks = sorted(
+            completed_query.all(),
+            key=lambda t: t.completed_at or datetime.min,
+            reverse=True,
+        )
 
         project_names = {p.id: p.name for p in all_projects}
         project_colors = {p.id: (p.color or "#888888") for p in all_projects}
@@ -110,6 +127,7 @@ def views_page(
 
         context = {
             "groups": groups,
+            "completed_tasks": completed_tasks,
             "all_projects": all_projects,
             "projects": all_projects,
             "priorities": list(Priority),
@@ -142,7 +160,7 @@ def views_page(
             "responsible_filter_label": _filter_label(
                 {r.name: r.name for r in responsible_options}, responsibles, "All Responsible"
             ),
-            "current_filter": "views",
+            "current_filter": "filters",
             "request_query": request.url.query,
         }
-        return templates.TemplateResponse(request, "views_report.html", context)
+        return templates.TemplateResponse(request, "filters_page.html", context)

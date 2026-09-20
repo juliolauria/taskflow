@@ -20,17 +20,41 @@
       localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
     }
 
+    // Closing a filter dropdown (not toggling checkboxes while it's still
+    // open) is what submits the filter form — so selections apply once you
+    // commit to them, not on every intermediate click inside the list.
+    function closeDropdownPanel(panel) {
+      if (panel.hidden) return;
+      panel.hidden = true;
+      var form = panel.closest("form.views-filter-form");
+      if (form) form.requestSubmit();
+    }
+
     function toggleFilterDropdown(btn) {
       var panel = btn.nextElementSibling;
       var wasHidden = panel.hidden;
-      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
-      panel.hidden = !wasHidden;
+      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) {
+        if (p !== panel) closeDropdownPanel(p);
+      });
+      if (wasHidden) {
+        panel.hidden = false;
+      } else {
+        closeDropdownPanel(panel);
+      }
     }
 
     document.addEventListener("click", function (e) {
       if (!e.target.closest(".dropdown-filter")) {
-        document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+        document.querySelectorAll(".dropdown-filter-panel").forEach(closeDropdownPanel);
       }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      var panel = e.target.closest(".dropdown-filter-panel");
+      if (!panel) return;
+      e.preventDefault();
+      closeDropdownPanel(panel);
     });
 
     function setFilterCheckboxes(btn, checked) {
@@ -357,6 +381,21 @@
 
     document.addEventListener("DOMContentLoaded", initColumnVisibility);
     document.addEventListener("htmx:afterSwap", initColumnVisibility);
+
+    // ---- Shared project filter (carried over to the Filters page) ----
+    // The Active page's selected project (from the sidebar) is remembered so
+    // the Filters page can default to the same project when visited fresh.
+    function syncSharedProjectFilter() {
+      var el = document.querySelector(".sidebar-projects-list[data-current-filter]");
+      if (!el) return;
+      var val = el.dataset.currentFilter;
+      if (val === "all" || (val && val !== "filters" && val !== "kanban")) {
+        localStorage.setItem("sharedProjectFilter", val);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", syncSharedProjectFilter);
+    document.addEventListener("htmx:afterSwap", syncSharedProjectFilter);
 
     // ---- Sortable task-table columns ----
     // Clicking a sortable column header cycles: original order -> ascending
