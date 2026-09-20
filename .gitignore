@@ -8,4 +8,4 @@ backups/
 *.log
 .vscode/
 .claude/
-.pyw
+*.pyw

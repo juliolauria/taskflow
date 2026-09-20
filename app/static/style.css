@@ -507,6 +507,21 @@ input[type="color"].dot-project::-moz-color-swatch {
   padding-right: 0.7rem;
 }
 
+.task-table th[data-col="title"],
+.task-table td[data-col="title"] {
+  width: 26%;
+}
+
+.task-table th[data-col="responsible"],
+.task-table td[data-col="responsible"] {
+  width: 10%;
+}
+
+.task-table th[data-col="comments"],
+.task-table td[data-col="comments"] {
+  width: 14%;
+}
+
 .cell-input,
 .cell-select {
   width: 100%;
