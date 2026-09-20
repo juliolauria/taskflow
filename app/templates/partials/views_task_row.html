@@ -1,4 +1,12 @@
-<tr class="task-row-grid priority-{{ task.priority.value | lower }}" data-task-id="{{ task.id }}">
+<tr
+  class="task-row-grid row-clickable priority-{{ task.priority.value | lower }}"
+  data-task-id="{{ task.id }}"
+  hx-get="/tasks/{{ task.id }}/edit"
+  hx-vals='{"project": "all", "redirect_to": "/views?{{ request_query }}"}'
+  hx-target="#modal-root"
+  hx-swap="innerHTML"
+  hx-trigger="click[!event.target.closest('input,select,button,a,.checklist-summary')]"
+>
   <td class="col-done" data-col="done">
     <form method="post" action="/tasks/{{ task.id }}/done" class="inline-form">
       <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">

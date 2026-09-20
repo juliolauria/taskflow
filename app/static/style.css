@@ -521,6 +521,10 @@ input[type="color"].dot-project::-moz-color-swatch {
   border-top: none;
 }
 
+.task-table tr.row-clickable:hover {
+  background: var(--bg-elevated-2);
+}
+
 .task-table th.col-done,
 .task-table td.col-done {
   width: 40px;
