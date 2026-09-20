@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from .database import Base, SessionLocal, engine
-from .routes import checklist, kanban, projects, reports, responsibles, statuses, tasks, views
+from .routes import checklist, kanban, projects, responsibles, statuses, tasks, views
 from .seed import (
     ensure_backlog_status,
     ensure_comments_column,
@@ -39,6 +39,5 @@ app.include_router(tasks.router)
 app.include_router(projects.router)
 app.include_router(statuses.router)
 app.include_router(responsibles.router)
-app.include_router(reports.router)
 app.include_router(kanban.router)
 app.include_router(checklist.router)

@@ -67,6 +67,16 @@
       }
     }
 
+    function reverseFilterCheckboxes(btn) {
+      var panel = btn.closest(".dropdown-filter-panel");
+      var boxes = panel.querySelectorAll("input[type=checkbox]");
+      boxes.forEach(function (cb) { cb.checked = !cb.checked; });
+      if (boxes.length) {
+        var allLabel = panel.closest(".dropdown-filter").dataset.allLabel;
+        updateFilterLabel(boxes[0], allLabel);
+      }
+    }
+
     function updateFilterLabel(checkbox, allLabel) {
       var root = checkbox.closest(".dropdown-filter");
       root.dataset.allLabel = allLabel;
@@ -154,60 +164,6 @@
       });
     }
 
-    // ---- Draggable / reorderable task ROWS ----
-    // Manual order is stored server-side (Task.position), set by dragging
-    // the ⋮⋮ handle. Reordering re-posts the full visible row order for
-    // that table and re-renders #task-list from the response.
-    function attachRowDragHandlers() {
-      document.querySelectorAll(".task-table tbody").forEach(function (tbody) {
-        tbody.querySelectorAll(".row-drag-handle").forEach(function (handle) {
-          if (handle.dataset.bound) return;
-          handle.dataset.bound = "true";
-          handle.addEventListener("dragstart", function (e) {
-            var row = handle.closest("tr");
-            e.dataTransfer.setData("text/plain", row.dataset.taskId);
-            e.dataTransfer.effectAllowed = "move";
-          });
-        });
-        tbody.querySelectorAll("tr[data-task-id]").forEach(function (row) {
-          if (row.dataset.dropBound) return;
-          row.dataset.dropBound = "true";
-          row.addEventListener("dragover", function (e) { e.preventDefault(); });
-          row.addEventListener("drop", function (e) {
-            e.preventDefault();
-            var draggedId = e.dataTransfer.getData("text/plain");
-            if (!draggedId) return;
-            var draggedRow = tbody.querySelector('tr[data-task-id="' + draggedId + '"]');
-            if (!draggedRow || draggedRow === row) return;
-            var rect = row.getBoundingClientRect();
-            var before = (e.clientY - rect.top) < rect.height / 2;
-            tbody.insertBefore(draggedRow, before ? row : row.nextSibling);
-            submitRowOrder(tbody);
-          });
-        });
-      });
-    }
-
-    function submitRowOrder(tbody) {
-      var ids = Array.from(tbody.querySelectorAll("tr[data-task-id]")).map(function (r) {
-        return r.dataset.taskId;
-      });
-      var wrapper = document.getElementById("task-list");
-      var currentFilter = wrapper ? wrapper.dataset.currentFilter : "all";
-      var params = new URLSearchParams();
-      ids.forEach(function (id) { params.append("order", id); });
-      fetch("/tasks/reorder?project=" + encodeURIComponent(currentFilter), {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString()
-      }).then(function (resp) { return resp.text(); }).then(function (html) {
-        if (wrapper) {
-          wrapper.outerHTML = html;
-          initColumnReordering();
-        }
-      });
-    }
-
     function initColumnReordering() {
       var nativeOrder = getCurrentColumnOrder();
       if (!nativeOrder.length) return;
@@ -216,7 +172,6 @@
       var order = mergeColumnOrder(nativeOrder, saved);
       applyColumnOrder(order);
       attachColumnDragHandlers();
-      attachRowDragHandlers();
     }
 
     document.addEventListener("DOMContentLoaded", initColumnReordering);
@@ -381,21 +336,6 @@
 
     document.addEventListener("DOMContentLoaded", initColumnVisibility);
     document.addEventListener("htmx:afterSwap", initColumnVisibility);
-
-    // ---- Shared project filter (carried over to the Filters page) ----
-    // The Active page's selected project (from the sidebar) is remembered so
-    // the Filters page can default to the same project when visited fresh.
-    function syncSharedProjectFilter() {
-      var el = document.querySelector(".sidebar-projects-list[data-current-filter]");
-      if (!el) return;
-      var val = el.dataset.currentFilter;
-      if (val === "all" || (val && val !== "filters" && val !== "kanban")) {
-        localStorage.setItem("sharedProjectFilter", val);
-      }
-    }
-
-    document.addEventListener("DOMContentLoaded", syncSharedProjectFilter);
-    document.addEventListener("htmx:afterSwap", syncSharedProjectFilter);
 
     // ---- Sortable task-table columns ----
     // Clicking a sortable column header cycles: original order -> ascending

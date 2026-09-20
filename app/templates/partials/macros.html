@@ -8,6 +8,7 @@
     <div class="dropdown-filter-actions">
       <button type="button" onclick="setFilterCheckboxes(this, true)">All</button>
       <button type="button" onclick="setFilterCheckboxes(this, false)">None</button>
+      <button type="button" onclick="reverseFilterCheckboxes(this)">Inverse</button>
     </div>
     <div class="dropdown-filter-options">
       {% for value, text in options %}

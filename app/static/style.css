@@ -627,29 +627,6 @@ input[type="color"].dot-project::-moz-color-swatch {
   color: var(--text);
 }
 
-.task-table th.col-drag,
-.task-table td.col-drag {
-  width: 28px;
-  padding-left: 0.6rem;
-  padding-right: 0;
-}
-
-.row-drag-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  color: var(--text-dim);
-  cursor: grab;
-  letter-spacing: -3px;
-  font-size: 0.95rem;
-  user-select: none;
-}
-
-.row-drag-handle:hover {
-  color: var(--text);
-}
-
 .task-row-grid[draggable="true"],
 tr.task-row-grid {
   cursor: default;
@@ -1246,40 +1223,70 @@ tr.task-row-grid {
   flex: 1;
 }
 
-.views-filter-form {
+.views-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem;
 }
 
-.filter-group {
+.views-toolbar .sidebar-toggle {
+  flex: none;
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.8rem;
+  background: var(--border);
+  flex: none;
+}
+
+.views-filter-form {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
-.filter-group label {
+.views-toolbar .columns-toggle {
+  flex: none;
+}
+
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filter-field label {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 
-.filter-group select,
+.filter-field select,
 .filter-select {
-  min-width: 140px;
+  min-width: 120px;
   background: var(--bg-elevated-2);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.45rem;
+  padding: 0.4rem 0.5rem;
   font-size: 0.85rem;
+}
+
+.toolbar-reset {
+  margin-left: auto;
 }
 
 /* ---------- Dropdown multi-select filters ---------- */
@@ -1292,12 +1299,12 @@ tr.task-row-grid {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 160px;
+  min-width: 130px;
   background: var(--bg-elevated-2);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.45rem 0.6rem;
+  padding: 0.4rem 0.55rem;
   font-size: 0.85rem;
   cursor: pointer;
   justify-content: space-between;
