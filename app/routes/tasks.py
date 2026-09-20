@@ -17,8 +17,6 @@ from ..models import (
     StatusOption,
     Task,
 )
-from .views import build_active_context
-
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
@@ -42,18 +40,8 @@ def _filter_to_project_id(filter_value: str) -> int | None:
         return None
 
 
-def _render_task_list(request: Request, filter_value: str):
-    with SessionLocal() as db:
-        context = build_active_context(db, filter_value)
-        return templates.TemplateResponse(request, "partials/task_list.html", context)
-
-
-def _render_task_list_oob(request: Request, filter_value: str):
-    with SessionLocal() as db:
-        context = build_active_context(db, filter_value)
-        return templates.TemplateResponse(
-            request, "partials/task_list_oob.html", context
-        )
+def _redirect_home(redirect_to: str) -> RedirectResponse:
+    return RedirectResponse(redirect_to or "/", status_code=303)
 
 
 def _remember_responsible(db, name: str) -> None:
@@ -73,6 +61,7 @@ def create_task(
     title: str = Form(...),
     project: str = Query("all"),
     project_id: str = Form(""),
+    redirect_to: str = Form(""),
 ):
     title = title.strip()
     resolved_project_id = int(project_id) if project_id else _filter_to_project_id(project)
@@ -91,14 +80,14 @@ def create_task(
             db.add(task)
             db.commit()
 
-    return _render_task_list(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.post("/tasks/reorder")
 def reorder_tasks(
     request: Request,
     order: list[str] = Form(...),
-    project: str = Query("all"),
+    redirect_to: str = Form(""),
 ):
     ids = [int(i) for i in order if i]
 
@@ -112,7 +101,7 @@ def reorder_tasks(
                 task.position = base + index * 10
         db.commit()
 
-    return _render_task_list(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.post("/tasks/{task_id}/done")
@@ -129,9 +118,7 @@ def mark_done(
             task.completed_at = datetime.utcnow()
             db.commit()
 
-    if redirect_to:
-        return RedirectResponse(redirect_to, status_code=303)
-    return _render_task_list(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.post("/tasks/{task_id}/reopen")
@@ -148,9 +135,7 @@ def reopen_task(
             task.completed_at = None
             db.commit()
 
-    if redirect_to:
-        return RedirectResponse(redirect_to, status_code=303)
-    return _render_task_list(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.post("/tasks/{task_id}/field")
@@ -192,9 +177,7 @@ def update_task_field(
 
                 db.commit()
 
-    if redirect_to:
-        return RedirectResponse(redirect_to, status_code=303)
-    return _render_task_list(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.get("/tasks/{task_id}/edit")
@@ -289,9 +272,7 @@ def update_task(
 
             db.commit()
 
-    if redirect_to:
-        return RedirectResponse(redirect_to, status_code=303)
-    return _render_task_list_oob(request, project)
+    return _redirect_home(redirect_to)
 
 
 @router.delete("/tasks/{task_id}")
@@ -307,6 +288,4 @@ def delete_task(
             db.delete(task)
             db.commit()
 
-    if redirect_to:
-        return RedirectResponse(redirect_to, status_code=303)
-    return _render_task_list_oob(request, project)
+    return _redirect_home(redirect_to)

@@ -2,6 +2,30 @@
 {% from "partials/macros.html" import filter_dropdown %}
 
 {% block content %}
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.has("reset")) {
+      localStorage.removeItem("filtersPageState");
+      window.location.replace("/filters");
+      return;
+    }
+    if (params.toString()) {
+      localStorage.setItem("filtersPageState", params.toString());
+    } else {
+      var stored = localStorage.getItem("filtersPageState");
+      if (stored) {
+        window.location.replace("/filters?" + stored);
+        return;
+      }
+      var sharedProject = localStorage.getItem("sharedProjectFilter");
+      if (sharedProject && sharedProject !== "all") {
+        window.location.replace("/filters?projects=" + encodeURIComponent(sharedProject));
+        return;
+      }
+    }
+  })();
+</script>
 <div class="app-shell">
   {% include "partials/sidebar.html" %}
 
@@ -9,6 +33,12 @@
     <header class="app-header">
       <button type="button" class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle sidebar">&#9776;</button>
       <h1>Filters</h1>
+      <div class="columns-toggle dropdown-filter">
+        <button type="button" class="dropdown-filter-btn columns-toggle-btn" onclick="toggleColumnsMenu(this)">
+          <span>Columns</span> <span class="dropdown-caret">&#9662;</span>
+        </button>
+        <div class="dropdown-filter-panel columns-toggle-panel" hidden></div>
+      </div>
     </header>
 
     <datalist id="responsible-datalist">
@@ -18,10 +48,10 @@
     </datalist>
 
     <div class="views-body">
-      <form class="views-filter-form" method="get" action="/views">
+      <form class="views-filter-form" method="get" action="/filters">
         <div class="filter-group">
           <label>Group by</label>
-          <select name="group_by" class="filter-select">
+          <select name="group_by" class="filter-select" onchange="this.form.requestSubmit()">
             <option value="">None</option>
             <option value="project" {% if group_by == "project" %}selected{% endif %}>Project</option>
             <option value="priority" {% if group_by == "priority" %}selected{% endif %}>Priority</option>
@@ -51,8 +81,7 @@
         </div>
 
         <div class="filter-actions">
-          <button type="submit" class="btn-primary">Apply</button>
-          <a href="/views" class="btn-secondary-link">Reset</a>
+          <a href="/filters?reset=1" class="btn-secondary-link">Reset</a>
         </div>
       </form>
 
@@ -79,6 +108,8 @@
                   <th data-col="status" class="col-sortable"><span class="col-label">Status</span></th>
                   <th data-col="responsible" class="col-sortable"><span class="col-label">Responsible</span></th>
                   <th data-col="deadline" class="col-sortable"><span class="col-label">Deadline</span></th>
+                  <th data-col="created" class="col-sortable"><span class="col-label">Created</span></th>
+                  <th data-col="updated" class="col-sortable"><span class="col-label">Updated</span></th>
                   <th data-col="comments" class="col-sortable"><span class="col-label">Comments</span></th>
                   <th data-col="checklist" class="col-sortable"><span class="col-label">Checklist</span></th>
                   <th class="col-actions" data-col="actions"></th>
@@ -86,7 +117,7 @@
               </thead>
               <tbody>
                 {% for task in group.tasks %}
-                {% include "partials/views_task_row.html" %}
+                {% include "partials/filters_task_row.html" %}
                 {% endfor %}
               </tbody>
             </table>
@@ -95,6 +126,45 @@
         {% endif %}
         {% endfor %}
       </div>
+
+      {% if completed_tasks %}
+      <section class="completed-section">
+        <button type="button" class="completed-toggle" onclick="this.closest('.completed-section').classList.toggle('expanded')">
+          <span class="chevron">&#9656;</span> Completed <span class="badge count-badge">{{ completed_tasks|length }}</span>
+        </button>
+        <ul class="task-rows completed-rows">
+          {% for task in completed_tasks %}
+          <li class="task-row completed priority-{{ task.priority.value|lower }}">
+            <form method="post" action="/tasks/{{ task.id }}/reopen" class="inline-form">
+              <input type="hidden" name="redirect_to" value="/filters?{{ request_query }}">
+              <button class="done-toggle checked" type="submit" aria-label="Reopen task" onclick="event.stopPropagation()"></button>
+            </form>
+            <div
+              class="task-main"
+              hx-get="/tasks/{{ task.id }}/edit"
+              hx-vals='{"project": "all", "redirect_to": "/filters?{{ request_query }}"}'
+              hx-target="#modal-root"
+              hx-swap="innerHTML"
+            >
+              <span class="task-title strikethrough">{{ task.title }}</span>
+              <div class="task-meta">
+                <span class="chip chip-sm" style="background: {{ project_colors.get(task.project_id, '#888888') }}33; color: {{ project_colors.get(task.project_id, '#888888') }};">
+                  {{ project_names.get(task.project_id, "") }}
+                </span>
+                <span class="badge priority-badge">{{ task.priority.value }}</span>
+                {% if task.responsible %}
+                <span class="badge responsible-badge">{{ task.responsible }}</span>
+                {% endif %}
+                {% if task.completed_at %}
+                <span class="badge completed-badge">Completed {{ task.completed_at.strftime("%d %b") }}</span>
+                {% endif %}
+              </div>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
     </div>
   </main>
 </div>

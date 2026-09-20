@@ -1,7 +1,18 @@
-<tr class="task-row-grid priority-{{ task.priority.value | lower }}" data-task-id="{{ task.id }}">
+<tr
+  class="task-row-grid row-clickable priority-{{ task.priority.value | lower }}"
+  data-task-id="{{ task.id }}"
+  hx-get="/tasks/{{ task.id }}/edit"
+  hx-vals='{"project": "all", "redirect_to": "/?{{ request_query }}"}'
+  hx-target="#modal-root"
+  hx-swap="innerHTML"
+  hx-trigger="click[!event.target.closest('input,select,button,a,.checklist-summary,.row-drag-handle')]"
+>
+  <td class="col-drag" data-col="drag">
+    <span class="row-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
+  </td>
   <td class="col-done" data-col="done">
     <form method="post" action="/tasks/{{ task.id }}/done" class="inline-form">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <button class="done-toggle" type="submit" aria-label="Mark done"></button>
     </form>
   </td>
@@ -13,14 +24,14 @@
   <td data-col="title">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="title">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <input type="text" name="value" class="cell-input" value="{{ task.title }}" onchange="this.form.requestSubmit()">
     </form>
   </td>
   <td data-col="priority">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="priority">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <select
         name="value"
         class="cell-select priority-select"
@@ -36,7 +47,7 @@
   <td data-col="status">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="status">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <select
         name="value"
         class="cell-select status-select"
@@ -52,7 +63,7 @@
   <td data-col="responsible">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="responsible">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <input
         type="text"
         name="value"
@@ -67,7 +78,7 @@
   <td data-col="deadline">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="deadline">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <input
         type="date"
         name="value"
@@ -77,10 +88,16 @@
       >
     </form>
   </td>
+  <td data-col="created">
+    <span class="cell-static">{{ task.created_at.strftime("%d %b %Y") if task.created_at else "" }}</span>
+  </td>
+  <td data-col="updated">
+    <span class="cell-static">{{ task.updated_at.strftime("%d %b %Y") if task.updated_at else "" }}</span>
+  </td>
   <td data-col="comments">
     <form method="post" action="/tasks/{{ task.id }}/field" class="inline-form">
       <input type="hidden" name="field" value="comments">
-      <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">
+      <input type="hidden" name="redirect_to" value="/?{{ request_query }}">
       <input
         type="text"
         name="value"
@@ -98,7 +115,7 @@
       id="checklist-summary-{{ task.id }}"
       class="checklist-summary {% if total and done == total %}complete{% endif %}"
       hx-get="/tasks/{{ task.id }}/checklist"
-      hx-vals='{"project": "all", "redirect_to": "/views?{{ request_query }}"}'
+      hx-vals='{"project": "all", "redirect_to": "/?{{ request_query }}"}'
       hx-target="#modal-root"
       hx-swap="innerHTML"
     >{% if total %}&#9776; {{ done }}/{{ total }}{% else %}+ Checklist{% endif %}</span>
@@ -108,7 +125,7 @@
       type="button"
       class="row-expand"
       hx-get="/tasks/{{ task.id }}/edit"
-      hx-vals='{"project": "all", "redirect_to": "/views?{{ request_query }}"}'
+      hx-vals='{"project": "all", "redirect_to": "/?{{ request_query }}"}'
       hx-target="#modal-root"
       hx-swap="innerHTML"
       title="More details"

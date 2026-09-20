@@ -80,6 +80,11 @@ a {
   min-width: 0;
 }
 
+.columns-toggle {
+  margin-left: auto;
+  flex: none;
+}
+
 .page-title-label {
   margin: 0;
   font-size: 1.3rem;
@@ -457,6 +462,27 @@ input[type="color"].dot-project::-moz-color-swatch {
   cursor: grabbing;
 }
 
+.task-table th {
+  position: relative;
+}
+
+.col-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 5;
+}
+
+.col-resize-handle:hover,
+.col-resize-handle.resizing {
+  background: var(--accent);
+  opacity: 0.5;
+}
+
 .task-table th.col-sortable .col-label {
   cursor: pointer;
   user-select: none;
@@ -495,6 +521,10 @@ input[type="color"].dot-project::-moz-color-swatch {
   border-top: none;
 }
 
+.task-table tr.row-clickable:hover {
+  background: var(--bg-elevated-2);
+}
+
 .task-table th.col-done,
 .task-table td.col-done {
   width: 40px;
@@ -520,6 +550,21 @@ input[type="color"].dot-project::-moz-color-swatch {
 .task-table th[data-col="comments"],
 .task-table td[data-col="comments"] {
   width: 14%;
+}
+
+.task-table th[data-col="created"],
+.task-table td[data-col="created"],
+.task-table th[data-col="updated"],
+.task-table td[data-col="updated"] {
+  width: 9%;
+  white-space: nowrap;
+}
+
+.cell-static {
+  display: inline-block;
+  padding: 0.5rem 0.5rem;
+  color: var(--text-dim);
+  font-size: 0.9rem;
 }
 
 .cell-input,
@@ -1201,40 +1246,70 @@ tr.task-row-grid {
   flex: 1;
 }
 
-.views-filter-form {
+.views-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
-  align-items: flex-start;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: 10px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: 0.6rem 0.75rem;
 }
 
-.filter-group {
+.views-toolbar .sidebar-toggle {
+  flex: none;
+}
+
+.toolbar-divider {
+  width: 1px;
+  align-self: stretch;
+  min-height: 1.8rem;
+  background: var(--border);
+  flex: none;
+}
+
+.views-filter-form {
   display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+  flex-wrap: wrap;
+  gap: 0.6rem 1rem;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
 }
 
-.filter-group label {
+.views-toolbar .columns-toggle {
+  flex: none;
+}
+
+.filter-field {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.filter-field label {
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 
-.filter-group select,
+.filter-field select,
 .filter-select {
-  min-width: 140px;
+  min-width: 120px;
   background: var(--bg-elevated-2);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.45rem;
+  padding: 0.4rem 0.5rem;
   font-size: 0.85rem;
+}
+
+.toolbar-reset {
+  margin-left: auto;
 }
 
 /* ---------- Dropdown multi-select filters ---------- */
@@ -1247,12 +1322,12 @@ tr.task-row-grid {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-width: 160px;
+  min-width: 130px;
   background: var(--bg-elevated-2);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 0.45rem 0.6rem;
+  padding: 0.4rem 0.55rem;
   font-size: 0.85rem;
   cursor: pointer;
   justify-content: space-between;

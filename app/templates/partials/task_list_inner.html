@@ -29,6 +29,8 @@
             <button type="button" class="col-manage-btn" hx-get="/responsibles/manage" hx-target="#modal-root" hx-swap="innerHTML" title="Manage responsible">&#9881;</button>
           </th>
           <th data-col="deadline" class="col-sortable"><span class="col-label">Deadline</span></th>
+          <th data-col="created" class="col-sortable"><span class="col-label">Created</span></th>
+          <th data-col="updated" class="col-sortable"><span class="col-label">Updated</span></th>
           <th data-col="comments" class="col-sortable"><span class="col-label">Comments</span></th>
           <th data-col="checklist" class="col-sortable"><span class="col-label">Checklist</span></th>
           <th class="col-actions" data-col="actions"></th>
@@ -36,7 +38,14 @@
       </thead>
       <tbody>
         {% for task in group.tasks %}
-        <tr class="task-row-grid priority-{{ task.priority.value | lower }}" data-task-id="{{ task.id }}">
+        <tr
+          class="task-row-grid row-clickable priority-{{ task.priority.value | lower }}"
+          data-task-id="{{ task.id }}"
+          hx-get="/tasks/{{ task.id }}/edit?project={{ current_filter }}"
+          hx-target="#modal-root"
+          hx-swap="innerHTML"
+          hx-trigger="click[!event.target.closest('input,select,button,a,.checklist-summary,.row-drag-handle')]"
+        >
           <td class="col-drag" data-col="drag">
             <span class="row-drag-handle" draggable="true" title="Drag to reorder">&#8942;&#8942;</span>
           </td>
@@ -128,6 +137,12 @@
               hx-target="#task-list"
               hx-swap="outerHTML"
             >
+          </td>
+          <td data-col="created">
+            <span class="cell-static">{{ task.created_at.strftime("%d %b %Y") if task.created_at else "" }}</span>
+          </td>
+          <td data-col="updated">
+            <span class="cell-static">{{ task.updated_at.strftime("%d %b %Y") if task.updated_at else "" }}</span>
           </td>
           <td data-col="comments">
             <input

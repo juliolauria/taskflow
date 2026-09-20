@@ -20,23 +20,98 @@
       localStorage.setItem("sidebarCollapsed", collapsed ? "true" : "false");
     }
 
+    // Sidebar navigation into "All Tasks" or a specific project keeps
+    // whatever filters are already active (from the current page, or the
+    // last remembered set) — only the project scope itself changes, since
+    // that's a page to switch into rather than a filter to lose.
+    function _currentOrStoredParams() {
+      var params = new URLSearchParams(window.location.search);
+      if (!params.toString()) {
+        try {
+          var stored = localStorage.getItem("tasksPageState");
+          if (stored) params = new URLSearchParams(stored);
+        } catch (e) {}
+      }
+      params.delete("reset");
+      return params;
+    }
+
+    function _goToTasksPage(params) {
+      var query = params.toString();
+      if (query) {
+        localStorage.setItem("tasksPageState", query);
+      } else {
+        localStorage.removeItem("tasksPageState");
+      }
+      window.location.href = query ? "/?" + query : "/";
+    }
+
+    function navigateAllTasks(event) {
+      event.preventDefault();
+      var params = _currentOrStoredParams();
+      params.delete("projects");
+      _goToTasksPage(params);
+    }
+
+    function navigateToProject(projectId, event) {
+      event.preventDefault();
+      var params = _currentOrStoredParams();
+      params.delete("projects");
+      params.append("projects", projectId);
+      _goToTasksPage(params);
+    }
+
+    // Closing a filter dropdown (not toggling checkboxes while it's still
+    // open) is what submits the filter form — so selections apply once you
+    // commit to them, not on every intermediate click inside the list.
+    function closeDropdownPanel(panel) {
+      if (panel.hidden) return;
+      panel.hidden = true;
+      var form = panel.closest("form.views-filter-form");
+      if (form) form.requestSubmit();
+    }
+
     function toggleFilterDropdown(btn) {
       var panel = btn.nextElementSibling;
       var wasHidden = panel.hidden;
-      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
-      panel.hidden = !wasHidden;
+      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) {
+        if (p !== panel) closeDropdownPanel(p);
+      });
+      if (wasHidden) {
+        panel.hidden = false;
+      } else {
+        closeDropdownPanel(panel);
+      }
     }
 
     document.addEventListener("click", function (e) {
       if (!e.target.closest(".dropdown-filter")) {
-        document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+        document.querySelectorAll(".dropdown-filter-panel").forEach(closeDropdownPanel);
       }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Enter") return;
+      var panel = e.target.closest(".dropdown-filter-panel");
+      if (!panel) return;
+      e.preventDefault();
+      closeDropdownPanel(panel);
     });
 
     function setFilterCheckboxes(btn, checked) {
       var panel = btn.closest(".dropdown-filter-panel");
       var boxes = panel.querySelectorAll("input[type=checkbox]");
       boxes.forEach(function (cb) { cb.checked = checked; });
+      if (boxes.length) {
+        var allLabel = panel.closest(".dropdown-filter").dataset.allLabel;
+        updateFilterLabel(boxes[0], allLabel);
+      }
+    }
+
+    function reverseFilterCheckboxes(btn) {
+      var panel = btn.closest(".dropdown-filter-panel");
+      var boxes = panel.querySelectorAll("input[type=checkbox]");
+      boxes.forEach(function (cb) { cb.checked = !cb.checked; });
       if (boxes.length) {
         var allLabel = panel.closest(".dropdown-filter").dataset.allLabel;
         updateFilterLabel(boxes[0], allLabel);
@@ -130,10 +205,25 @@
       });
     }
 
+    function initColumnReordering() {
+      var nativeOrder = getCurrentColumnOrder();
+      if (!nativeOrder.length) return;
+      var saved = null;
+      try { saved = JSON.parse(localStorage.getItem("taskTableColumnOrder")); } catch (e) {}
+      var order = mergeColumnOrder(nativeOrder, saved);
+      applyColumnOrder(order);
+      attachColumnDragHandlers();
+      attachRowDragHandlers();
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnReordering);
+    document.addEventListener("htmx:afterSwap", initColumnReordering);
+
     // ---- Draggable / reorderable task ROWS ----
     // Manual order is stored server-side (Task.position), set by dragging
     // the ⋮⋮ handle. Reordering re-posts the full visible row order for
-    // that table and re-renders #task-list from the response.
+    // that table, then reloads the page so it re-renders with the new order
+    // (the row edits on this page are all full-reload based already).
     function attachRowDragHandlers() {
       document.querySelectorAll(".task-table tbody").forEach(function (tbody) {
         tbody.querySelectorAll(".row-drag-handle").forEach(function (handle) {
@@ -168,35 +258,177 @@
       var ids = Array.from(tbody.querySelectorAll("tr[data-task-id]")).map(function (r) {
         return r.dataset.taskId;
       });
-      var wrapper = document.getElementById("task-list");
-      var currentFilter = wrapper ? wrapper.dataset.currentFilter : "all";
       var params = new URLSearchParams();
       ids.forEach(function (id) { params.append("order", id); });
-      fetch("/tasks/reorder?project=" + encodeURIComponent(currentFilter), {
+      params.append("redirect_to", window.location.pathname + window.location.search);
+      fetch("/tasks/reorder", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: params.toString()
-      }).then(function (resp) { return resp.text(); }).then(function (html) {
-        if (wrapper) {
-          wrapper.outerHTML = html;
-          initColumnReordering();
-        }
+      }).then(function () {
+        window.location.reload();
       });
     }
 
-    function initColumnReordering() {
-      var nativeOrder = getCurrentColumnOrder();
-      if (!nativeOrder.length) return;
-      var saved = null;
-      try { saved = JSON.parse(localStorage.getItem("taskTableColumnOrder")); } catch (e) {}
-      var order = mergeColumnOrder(nativeOrder, saved);
-      applyColumnOrder(order);
-      attachColumnDragHandlers();
-      attachRowDragHandlers();
+    // ---- Resizable task-table columns ----
+    // Column widths are a per-browser display preference (not shared data),
+    // so they're kept in localStorage, same as column order.
+    function loadColumnWidths() {
+      try {
+        return JSON.parse(localStorage.getItem("taskTableColumnWidths")) || {};
+      } catch (e) {
+        return {};
+      }
     }
 
-    document.addEventListener("DOMContentLoaded", initColumnReordering);
-    document.addEventListener("htmx:afterSwap", initColumnReordering);
+    function applyColumnWidths(widths) {
+      Object.keys(widths).forEach(function (col) {
+        var px = widths[col] + "px";
+        document.querySelectorAll('.task-table [data-col="' + col + '"]').forEach(function (cell) {
+          cell.style.width = px;
+        });
+      });
+    }
+
+    function attachColumnResizeHandlers() {
+      document.querySelectorAll(".task-table thead th[data-col]").forEach(function (th) {
+        var col = th.dataset.col;
+        if (col === "drag" || col === "done" || col === "actions" || th.dataset.resizeBound) return;
+        th.dataset.resizeBound = "true";
+        var handle = document.createElement("span");
+        handle.className = "col-resize-handle";
+        handle.addEventListener("mousedown", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          var startX = e.clientX;
+          var startWidth = th.getBoundingClientRect().width;
+          handle.classList.add("resizing");
+          function onMove(ev) {
+            var width = Math.max(40, startWidth + (ev.clientX - startX));
+            var widths = {};
+            widths[col] = Math.round(width);
+            applyColumnWidths(widths);
+          }
+          function onUp() {
+            handle.classList.remove("resizing");
+            document.removeEventListener("mousemove", onMove);
+            document.removeEventListener("mouseup", onUp);
+            var widths = loadColumnWidths();
+            widths[col] = Math.round(th.getBoundingClientRect().width);
+            localStorage.setItem("taskTableColumnWidths", JSON.stringify(widths));
+          }
+          document.addEventListener("mousemove", onMove);
+          document.addEventListener("mouseup", onUp);
+        });
+        th.appendChild(handle);
+      });
+    }
+
+    function initColumnResizing() {
+      applyColumnWidths(loadColumnWidths());
+      attachColumnResizeHandlers();
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnResizing);
+    document.addEventListener("htmx:afterSwap", initColumnResizing);
+
+    // ---- Column visibility toggle ----
+    // Applies to every .task-table on the page, so it works the same way
+    // across the active list view and the Views report page.
+    var ALWAYS_VISIBLE_COLS = ["drag", "done", "actions"];
+
+    function loadHiddenColumns() {
+      try {
+        return JSON.parse(localStorage.getItem("taskTableHiddenColumns")) || [];
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveHiddenColumns(hidden) {
+      localStorage.setItem("taskTableHiddenColumns", JSON.stringify(hidden));
+    }
+
+    function applyColumnVisibility(hidden) {
+      document.querySelectorAll(".task-table").forEach(function (table) {
+        table.querySelectorAll("[data-col]").forEach(function (cell) {
+          cell.style.display = hidden.indexOf(cell.dataset.col) !== -1 ? "none" : "";
+        });
+      });
+    }
+
+    function getToggleableColumns() {
+      var firstTable = document.querySelector(".task-table");
+      if (!firstTable) return [];
+      var headerRow = firstTable.querySelector("thead tr");
+      if (!headerRow) return [];
+      return Array.from(headerRow.children)
+        .map(function (th) {
+          var col = th.dataset.col;
+          if (!col || ALWAYS_VISIBLE_COLS.indexOf(col) !== -1) return null;
+          var label = th.querySelector(".col-label");
+          return { col: col, label: label ? label.textContent.trim() : col };
+        })
+        .filter(Boolean);
+    }
+
+    function buildColumnsPanel(panel) {
+      var columns = getToggleableColumns();
+      var hidden = loadHiddenColumns();
+      panel.innerHTML = "";
+
+      var actions = document.createElement("div");
+      actions.className = "dropdown-filter-actions";
+      var showAll = document.createElement("button");
+      showAll.type = "button";
+      showAll.textContent = "Show all";
+      showAll.addEventListener("click", function () {
+        saveHiddenColumns([]);
+        applyColumnVisibility([]);
+        buildColumnsPanel(panel);
+      });
+      actions.appendChild(showAll);
+      panel.appendChild(actions);
+
+      var options = document.createElement("div");
+      options.className = "dropdown-filter-options";
+      columns.forEach(function (meta) {
+        var label = document.createElement("label");
+        label.className = "dropdown-filter-option";
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = hidden.indexOf(meta.col) === -1;
+        checkbox.addEventListener("change", function () {
+          var current = loadHiddenColumns();
+          if (checkbox.checked) {
+            current = current.filter(function (c) { return c !== meta.col; });
+          } else if (current.indexOf(meta.col) === -1) {
+            current.push(meta.col);
+          }
+          saveHiddenColumns(current);
+          applyColumnVisibility(current);
+        });
+        label.appendChild(checkbox);
+        label.appendChild(document.createTextNode(meta.label));
+        options.appendChild(label);
+      });
+      panel.appendChild(options);
+    }
+
+    function toggleColumnsMenu(btn) {
+      var panel = btn.parentElement.querySelector(".columns-toggle-panel");
+      var wasHidden = panel.hidden;
+      document.querySelectorAll(".dropdown-filter-panel").forEach(function (p) { p.hidden = true; });
+      panel.hidden = !wasHidden;
+      if (!panel.hidden) buildColumnsPanel(panel);
+    }
+
+    function initColumnVisibility() {
+      applyColumnVisibility(loadHiddenColumns());
+    }
+
+    document.addEventListener("DOMContentLoaded", initColumnVisibility);
+    document.addEventListener("htmx:afterSwap", initColumnVisibility);
 
     // ---- Sortable task-table columns ----
     // Clicking a sortable column header cycles: original order -> ascending
