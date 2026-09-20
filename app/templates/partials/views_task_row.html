@@ -1,4 +1,4 @@
-<tr class="task-row-grid priority-{{ task.priority.value | lower }}">
+<tr class="task-row-grid priority-{{ task.priority.value | lower }}" data-task-id="{{ task.id }}">
   <td class="col-done" data-col="done">
     <form method="post" action="/tasks/{{ task.id }}/done" class="inline-form">
       <input type="hidden" name="redirect_to" value="/views?{{ request_query }}">

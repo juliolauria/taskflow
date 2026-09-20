@@ -457,6 +457,34 @@ input[type="color"].dot-project::-moz-color-swatch {
   cursor: grabbing;
 }
 
+.task-table th.col-sortable .col-label {
+  cursor: pointer;
+  user-select: none;
+}
+
+.task-table th.col-sortable .col-label:hover {
+  color: var(--text);
+}
+
+.task-table th.col-sortable .col-label::after {
+  display: inline-block;
+  width: 0.9em;
+  margin-left: 0.2em;
+  opacity: 0.5;
+  content: "\21C5";
+  font-size: 0.85em;
+}
+
+.task-table th.col-sortable.sort-asc .col-label::after {
+  content: "\2191";
+  opacity: 1;
+}
+
+.task-table th.col-sortable.sort-desc .col-label::after {
+  content: "\2193";
+  opacity: 1;
+}
+
 .task-table td {
   padding: 0.4rem 0.55rem;
   border-top: 1px solid var(--border);
